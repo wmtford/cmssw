@@ -56,9 +56,6 @@ secFiles.extend( [
 '/store/relval/CMSSW_3_1_2/RelValQCD_Pt_3000_3500/GEN-SIM-DIGI-RAW-HLTDEBUG/MC_31X_V3-v1/0007/0822DD24-E978-DE11-B43C-001D09F253C0.root',
 '/store/relval/CMSSW_3_1_2/RelValQCD_Pt_3000_3500/GEN-SIM-DIGI-RAW-HLTDEBUG/MC_31X_V3-v1/0007/02AAD3A6-D078-DE11-9C9A-000423D98EC8.root']);
 
-from RecoTracker.MeasurementDet.MeasurementTrackerESProducer_cfi import *
-MeasurementTracker.stripClusterProducer = 'siStripSplitClusters'
-
 process = cms.Process("AnalyzeSplitClusters")
 process.load("FWCore.MessageLogger.MessageLogger_cfi")
 #process.MessageLogger = cms.Service("MessageLogger",
@@ -90,25 +87,54 @@ process.load("RecoTracker.TrackProducer.CTFFinalFitWithMaterial_cff")
 process.load("RecoTracker.TrackProducer.TrackRefitters_cff") #the correct one
 #process.TrackRefitter.TrajectoryInEvent = True
 
+from RecoTracker.MeasurementDet.MeasurementTrackerESProducer_cfi import *
+MeasurementTracker.stripClusterProducer = 'siStripSplitClusters'
+
 process.load("RecoTracker.Configuration.RecoTracker_cff")
 process.newClusters.stripClusters = cms.InputTag("siStripSplitClusters")
 
+# Next 5 lines from Boris
+process.splitClusterMeasurementTracker = process.MeasurementTracker.clone(
+    ComponentName = 'splitClusterMeasurementTracker',
+    stripClusterProducer = 'siStripSplitClusters'
+)
+process.newTrajectoryBuilder.MeasurementTrackerName = 'splitClusterMeasurementTracker'
+
+# First suggestion from Boris
+##x from RecoTracker.MeasurementDet.MeasurementTrackerESProducer_cfi import *
+##x MeasurementTracker.stripClusterProducer = 'siStripSplitClusters'
+#
+#import RecoTracker.MeasurementDet.MeasurementTrackerESProducer_cfi
+#splitClusterMeasurementTracker = RecoTracker.MeasurementDet.MeasurementTrackerESProducer_cfi.MeasurementTracker.clone(
+#   ComponentName = 'splitClusterMeasurementTracker',
+#   stripClusterProducer = 'siStripSplitClusters'
+#)
+#newTrajectoryBuilder = RecoTracker.CkfPattern.GroupedCkfTrajectoryBuilderESProducer_cfi.GroupedCkfTrajectoryBuilder.clone(
+#   ComponentName = 'newTrajectoryBuilder',
+#   trajectoryFilterName = 'newTrajectoryFilter',
+#   MeasurementTrackerName = 'splitClusterMeasurementTracker'
+#)
 
 #import AnalysisAlgos.TrackInfoProducer.TrackInfoProducer_cfi
 #process.trackinfoCTF = AnalysisAlgos.TrackInfoProducer.TrackInfoProducer_cfi.trackinfo.clone()
 #process.trackinfoCTF.cosmicTracks = 'TrackRefitter'
 #process.trackinfoCTF.rechits = 'TrackRefitter'
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1))
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(500))
 process.MessageLogger.cerr.FwkReport.reportEvery = 10
 #process.MessageLogger.cerr.threshold = 'Info'
-process.source = cms.Source("PoolSource", fileNames = cms.untracked.vstring('file:cmsData/3000_3500_Split.root'))
+#process.source = cms.Source("PoolSource", fileNames = cms.untracked.vstring('file:cmsData/3000_3500_Split_1k.root'))
+process.source = cms.Source("PoolSource",
+  fileNames = cms.untracked.vstring('file:cmsData/3000_3500_Split_1k.root'),
+  skipEvents = cms.untracked.uint32(0)
+)
 #ta process.source = source
 
 #process.Timing = cms.Service("Timing")
 #process.SimpleMemoryCheck = cms.Service("SimpleMemoryCheck")
 
 process.myClusterAnalysis = cms.EDFilter("ClusterAnalyzer",
+ outputFilename = cms.untracked.string('file:SplitHitsAnalysis.root'),
  associatePixel = cms.bool(False),
  ROUList = cms.vstring('g4SimHitsTrackerHitsTIBLowTof', 
   'g4SimHitsTrackerHitsTIBHighTof', 
@@ -139,6 +165,7 @@ process.myClusterAnalysis = cms.EDFilter("ClusterAnalyzer",
  ),
  ShowMechanicalStructureView = cms.bool(True)
 )
+
 process.siStripMatchedRecHits = cms.EDProducer("SiStripRecHitConverter",
  StripCPE = cms.string('StripCPEfromTrackAngle'),
  Regional = cms.bool(False),
@@ -150,10 +177,12 @@ process.siStripMatchedRecHits = cms.EDProducer("SiStripRecHitConverter",
  VerbosityLevel = cms.untracked.int32(1),
  rphiRecHits = cms.string('rphiRecHit')
 )
+
 process.out = cms.OutputModule("PoolOutputModule",
  outputCommands = cms.untracked.vstring('keep *_*_*_*'),
- fileName = cms.untracked.string('file:3000_3500_Split_4Validator.root')
+ fileName = cms.untracked.string('file:cmsData/3000_3500_Split_4Validator.root')
 )
+
 process.rechits = cms.Sequence(process.siPixelRecHits*process.siStripMatchedRecHits)
 #process.event = cms.EDAnalyzer("EventContentAnalyzer")
 process.p1 = cms.Path(process.mix*process.rechits*process.ckftracks*process.TrackRefitter*process.myClusterAnalysis)
