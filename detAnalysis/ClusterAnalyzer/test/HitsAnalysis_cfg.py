@@ -64,9 +64,7 @@ process.load("SimGeneral.HepPDTESSource.pythiapdt_cfi")
 process.load("SimGeneral.MixingModule.mixNoPU_cfi")
 
 ### conditions
-#!process.load("Configuration.StandardSequences.FakeConditions_cff")
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
-#process.GlobalTag.globaltag = 'STARTUP_V1::All'
 process.GlobalTag.globaltag = 'MC_31X_V3::All'
 
 process.load("SimTracker.Configuration.SimTracker_cff")
@@ -92,6 +90,7 @@ process.source = source
 #process.SimpleMemoryCheck = cms.Service("SimpleMemoryCheck")
 
 process.myClusterAnalysis = cms.EDFilter("ClusterAnalyzer",
+ outputFilename = cms.untracked.string('file:HitsAnalysis.root'),
  associatePixel = cms.bool(False),
  ROUList = cms.vstring('g4SimHitsTrackerHitsTIBLowTof', 
   'g4SimHitsTrackerHitsTIBHighTof', 
@@ -124,6 +123,5 @@ process.myClusterAnalysis = cms.EDFilter("ClusterAnalyzer",
 
 process.rechits = cms.Sequence(process.siPixelRecHits*process.siStripMatchedRecHits)
 #process.event = cms.EDAnalyzer("EventContentAnalyzer")
-#process.p1 = cms.Path(process.mix*process.rechits*process.TrackRefitter*process.trackinfoCTF*process.myClusterAnalysis)
 process.p1 = cms.Path(process.mix*process.rechits*process.TrackRefitter*process.myClusterAnalysis)
 

@@ -68,9 +68,7 @@ process.load("SimGeneral.HepPDTESSource.pythiapdt_cfi")
 process.load("SimGeneral.MixingModule.mixNoPU_cfi")
 
 ### conditions
-#!process.load("Configuration.StandardSequences.FakeConditions_cff")
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
-#process.GlobalTag.globaltag = 'STARTUP_V1::All'
 process.GlobalTag.globaltag = 'MC_31X_V3::All'
 
 process.load("SimTracker.Configuration.SimTracker_cff")
@@ -97,7 +95,8 @@ process.source = source
 #process.SimpleMemoryCheck = cms.Service("SimpleMemoryCheck")
 process.siStripSplitClusters = cms.EDProducer("SplitClustersProducer")
 process.out = cms.OutputModule("PoolOutputModule",
- outputCommands = cms.untracked.vstring('drop *', 'keep *_siStripSplitClusters_*_*',
+ outputCommands = cms.untracked.vstring('drop *',
+  'keep *_siStripSplitClusters_*_*',
   'keep *_siStripDigis_*_*',             # Added (wtf)
   'keep *_siPixelClusters_*_*','keep *_offlineBeamSpot_*_*','keep *_pixelVertices_*_*','keep *_g4SimHits_*_*',
   'keep *_simSiPixelDigis_*_*','keep *_simSiStripDigis_*_*','keep *_mergedtruth_*_*'),

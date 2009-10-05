@@ -1,6 +1,6 @@
 import FWCore.ParameterSet.Config as cms
 
-# The cmsSource "source" defined here is used only for a test
+# The cmsSource "source" defined here allows for alternative running on unsplit clusters
 readFiles = cms.untracked.vstring()
 secFiles = cms.untracked.vstring()
 source = cms.Source ("PoolSource",fileNames = readFiles, secondaryFileNames = secFiles)
@@ -72,9 +72,7 @@ process.load("SimGeneral.HepPDTESSource.pythiapdt_cfi")
 process.load("SimGeneral.MixingModule.mixNoPU_cfi")
 
 ### conditions
-#!process.load("Configuration.StandardSequences.FakeConditions_cff")
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
-#process.GlobalTag.globaltag = 'STARTUP_V1::All'
 process.GlobalTag.globaltag = 'MC_31X_V3::All'
 
 process.load("SimTracker.Configuration.SimTracker_cff")
@@ -100,35 +98,19 @@ process.splitClusterMeasurementTracker = process.MeasurementTracker.clone(
 )
 process.newTrajectoryBuilder.MeasurementTrackerName = 'splitClusterMeasurementTracker'
 
-# First suggestion from Boris
-##x from RecoTracker.MeasurementDet.MeasurementTrackerESProducer_cfi import *
-##x MeasurementTracker.stripClusterProducer = 'siStripSplitClusters'
-#
-#import RecoTracker.MeasurementDet.MeasurementTrackerESProducer_cfi
-#splitClusterMeasurementTracker = RecoTracker.MeasurementDet.MeasurementTrackerESProducer_cfi.MeasurementTracker.clone(
-#   ComponentName = 'splitClusterMeasurementTracker',
-#   stripClusterProducer = 'siStripSplitClusters'
-#)
-#newTrajectoryBuilder = RecoTracker.CkfPattern.GroupedCkfTrajectoryBuilderESProducer_cfi.GroupedCkfTrajectoryBuilder.clone(
-#   ComponentName = 'newTrajectoryBuilder',
-#   trajectoryFilterName = 'newTrajectoryFilter',
-#   MeasurementTrackerName = 'splitClusterMeasurementTracker'
-#)
-
 #import AnalysisAlgos.TrackInfoProducer.TrackInfoProducer_cfi
 #process.trackinfoCTF = AnalysisAlgos.TrackInfoProducer.TrackInfoProducer_cfi.trackinfo.clone()
 #process.trackinfoCTF.cosmicTracks = 'TrackRefitter'
 #process.trackinfoCTF.rechits = 'TrackRefitter'
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(500))
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1))
 process.MessageLogger.cerr.FwkReport.reportEvery = 10
 #process.MessageLogger.cerr.threshold = 'Info'
-#process.source = cms.Source("PoolSource", fileNames = cms.untracked.vstring('file:cmsData/3000_3500_Split_1k.root'))
 process.source = cms.Source("PoolSource",
-  fileNames = cms.untracked.vstring('file:cmsData/3000_3500_Split_1k.root'),
+  fileNames = cms.untracked.vstring('file:cmsData/3000_3500_Split.root'),
   skipEvents = cms.untracked.uint32(0)
 )
-#ta process.source = source
+# process.source = source
 
 #process.Timing = cms.Service("Timing")
 #process.SimpleMemoryCheck = cms.Service("SimpleMemoryCheck")

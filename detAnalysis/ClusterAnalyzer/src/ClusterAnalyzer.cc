@@ -74,6 +74,7 @@ using namespace std;
 ClusterAnalyzer::ClusterAnalyzer(edm::ParameterSet const& conf): 
  conf_(conf),
  theCMNSubtractionMode(conf.getUntrackedParameter<std::string>( "CMNSubtractionMode" ,"Median")), 
+ theOutputFilename(conf.getUntrackedParameter<std::string>( "outputFilename", "out.root")),
  theTrackSourceLabel(conf.getParameter<edm::InputTag>( "trackSourceLabel" )), 
  theTrackTrackInfoAssocLabel(conf.getParameter<edm::InputTag>( "trackTrackInfoAssocLabel" )),
  theClusterSourceLabel(conf.getParameter<edm::InputTag>( "clusterSourceLabel" )),
@@ -97,7 +98,7 @@ void ClusterAnalyzer::beginJob( const edm::EventSetup& es ) {
 
  es.get<TrackAssociatorRecord>().get("TrackAssociatorByHits",trackAssociator);
 
- outputfile = new TFile("out.root","recreate");
+ outputfile = new TFile(theOutputFilename.c_str(), "recreate");
  hTrackPt = new TH1F("TrackPt","",1000,0,1000);
 
  hTIBLayer = new TH1F("TIBLayer","",100,0,10);
@@ -1360,42 +1361,6 @@ pair<unsigned int,int> ClusterAnalyzer::FindDetLayer(DetId& id)
  }
  pair<unsigned int,int> p(iSubDet,LayerToReturn);
  return p; 
-}
-
-//
-// Number of strips in the left sub-cluster of a splittable cluster
-//
-uint8_t ClusterAnalyzer::leftStripCount(const std::vector<uint8_t> amp,
-						   const std::vector<PSimHit> associated,
-						   float& totalEnergy,
-						   float& leftAmplitudeFraction)
-{
-  //Calculate the energy fraction of 1 of the 2 SimHits associated
-  float leftEnergyFraction=0, leftEnergy = 0, middlex = 0, thisx = 0;
-  totalEnergy = 0;
-  vector<PSimHit>::const_iterator firstsimhit = associated.begin();
-  middlex = firstsimhit->localPosition().x();
-  leftEnergy = firstsimhit->energyLoss();
-  for(vector<PSimHit>::const_iterator simhitsIter=firstsimhit; simhitsIter<associated.end(); simhitsIter++){
-   totalEnergy += simhitsIter->energyLoss();
-   if (middlex > (thisx = simhitsIter->localPosition().x())) {
-    middlex = thisx;
-    leftEnergy = simhitsIter->energyLoss();
-   }
-  }
-  leftEnergyFraction = leftEnergy / totalEnergy;
-
-  //Find # of strips from the left which in total have charge fraction ~ energy fraction
-  float totalAmplitude =0, leftAmplitude =0;
-  leftAmplitudeFraction = 0;
-  uint8_t stripCounter = 0;
-  for(size_t j=0; j < size_t(amp.size()); ++j) totalAmplitude += float(amp[j]);
-  for(size_t j=0; j < size_t(amp.size()) && leftAmplitudeFraction <= leftEnergyFraction; ++j){
-   leftAmplitude += float(amp[j]);
-   leftAmplitudeFraction = leftAmplitude/totalAmplitude;
-   stripCounter++;
-  }
-  return(stripCounter);
 }
 
 DEFINE_SEAL_MODULE();

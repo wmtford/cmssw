@@ -1,9 +1,6 @@
 #ifndef ClusterAnalyzer_h
 #define ClusterAnalyzer_h
 
-// For the splitter function
-/* #include "wtfRecoLocalTracker/SplitClustersProducer/interface/SplitClustersProducer.h" */
-
 #include "FWCore/Utilities/interface/Exception.h"
 
 #include "FWCore/Framework/interface/EDAnalyzer.h"
@@ -80,11 +77,14 @@
 #include <string>
 #include <iostream>
 
+// For the splitter function
+#include "wtfRecoLocalTracker/SplitClustersProducer/interface/SplitClustersAlgos.h"
+
 
 class DQMStore;
 
 
-class ClusterAnalyzer : public edm::EDAnalyzer
+class ClusterAnalyzer : public edm::EDAnalyzer, public SplitClustersAlgos
 {
 
  public:
@@ -119,6 +119,7 @@ class ClusterAnalyzer : public edm::EDAnalyzer
   edm::ParameterSet conf_;
 
   std::string theCMNSubtractionMode;
+  std::string theOutputFilename;
   edm::InputTag theTrackSourceLabel;
   edm::InputTag theTrackTrackInfoAssocLabel;
   edm::InputTag theClusterSourceLabel;
@@ -144,17 +145,6 @@ class ClusterAnalyzer : public edm::EDAnalyzer
   int countOn;
   double secondmindistance;
   
-//
-// Number of strips in the left sub-cluster of a splittable cluster
-//
-  // FIXME would like to use the function
-  //  SplitClustersProducer::leftStripCount
-  //  but can't resolve linking issues
-  // Copy that function to this class instead
-/*   SplitClustersProducer::leftStripCount splitter_; */
-  uint8_t leftStripCount(const std::vector<uint8_t>, const std::vector<PSimHit>, float&, float&);
-
-
   TrackerHitAssociator * hitAssociator;
 
   TH1F* hTrackPt;
