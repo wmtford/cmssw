@@ -1,4 +1,4 @@
-4 Oct 2009  wtford --
+4 Oct 2009  wtford -- V01-01-01
 ClusterAnalyzer:  Add inheritance from
 wtfRecoLocalTracker/SplitClustersAlgos to replace local copy of 
 leftStripCount().  Add a parameter to control the output root file
@@ -8,8 +8,10 @@ point the builder to library needed for the addition above.
 SplitHitsAnalysis_cfg.py:  Point newTrajectoryBuilder to the split
 clusters 
 
-21 Sept 2009  wtford --
-The SplitHitsAnalysis job is leaking about 3MB per event.
+29 Sep 2009  wtford -- Commit V01-01-00
+
+21 Sept 2009  wtford -- 
+The SplitHitsAnalysis job was leaking about 3MB per event.
 25 Sept., 2009
 The leaky module is the trackInfo.  I learn from e-mail from Chiara
 Genta that in fact trackInfo is obsolete and unsupported.  Rewrote the
