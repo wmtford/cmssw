@@ -17,21 +17,18 @@
 #include "SimDataFormats/TrackingHit/interface/PSimHit.h"
 #include "SimTracker/TrackerHitAssociation/interface/TrackerHitAssociator.h"
 
+#include "wtfRecoLocalTracker/SplitClustersProducer/interface/SplitClustersAlgos.h"
+
 //
 // class declaration
 //
 
-class SplitClustersProducer : public edm::EDProducer {
+class SplitClustersProducer : public edm::EDProducer, public SplitClustersAlgos {
    public:
       explicit SplitClustersProducer(const edm::ParameterSet&);
       SplitClustersProducer();
       ~SplitClustersProducer();
       std::vector<PSimHit> associatedA;
-//
-//    Number of strips in the left sub-cluster of a splittable cluster
-//
-      uint8_t leftStripCount(const std::vector<uint8_t>, const std::vector<PSimHit>, float&, float&);
-      uint8_t leftStripCount(const std::vector<uint8_t>, const std::vector<PSimHit>);
 
    private:
       virtual void beginJob(const edm::EventSetup&) ;

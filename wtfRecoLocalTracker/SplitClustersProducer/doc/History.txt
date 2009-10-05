@@ -1,3 +1,11 @@
+4 Oct 2009  wtford --
+Add new base class SplitClustersAlgos to provide leftStripCount() either
+to this package or to ClusterAnalyzer.
+SplitClustersProducer:  Add inheritance from SplitClustersAlgos and
+remove leftStripCount() to SplitClustersAlgos.
+Add plugins/SealModule.cc and plugins/Buildfile to create the library
+needed by the Analyzer.
+
 21 Sept 2009  wtford --
 The producer job is leaking about 3MB per event.  This is true even if
 the SplitClustersProducer::produce() method returns at the top.
