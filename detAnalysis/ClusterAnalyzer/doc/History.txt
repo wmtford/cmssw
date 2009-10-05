@@ -1,4 +1,5 @@
 4 Oct 2009  wtford -- V01-01-01
+Requires wtfRecoLocalTracker/SplitClustersProducer V01-01-01 (or later)
 ClusterAnalyzer:  Add inheritance from
 wtfRecoLocalTracker/SplitClustersAlgos to replace local copy of 
 leftStripCount().  Add a parameter to control the output root file
