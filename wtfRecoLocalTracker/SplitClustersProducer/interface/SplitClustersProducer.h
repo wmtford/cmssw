@@ -19,6 +19,8 @@
 
 #include "wtfRecoLocalTracker/SplitClustersProducer/interface/SplitClustersAlgos.h"
 
+typedef std::pair<uint32_t, EncodedEventId> SimHitIdpr;
+
 //
 // class declaration
 //
@@ -34,6 +36,12 @@ class SplitClustersProducer : public edm::EDProducer, public SplitClustersAlgos 
       virtual void beginJob(const edm::EventSetup&) ;
       virtual void produce(edm::Event&, const edm::EventSetup&);
       virtual void endJob() ;
+
+//
+//  Find and dump simTracks associated with the original and new split clusters
+//
+      void dumpSimTracks(TrackerHitAssociator*, const SiStripCluster*,
+			 SiStripCluster*, SiStripCluster*);
       
       // ----------member data ---------------------------
 

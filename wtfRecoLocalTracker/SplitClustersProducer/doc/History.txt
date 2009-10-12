@@ -1,4 +1,13 @@
-4 Oct 2009  wtford --
+11 Oct 2009  wtford -- V01-01-02
+SplitClustersProducer:  add method SplitClustersProducer::dumpSimTracks
+to inspect the original and split clusters.  This requires also the tags
+V06-01-08      DataFormats/TrackerRecHit2D                      
+V01-04-04      SimTracker/TrackerHitAssociation                 
+with a private modification to TrackerHitAssociator: new function
+overload 
+std::vector<PSimHit> associateSimpleRecHitCluster(const SiStripCluster*);
+
+4 Oct 2009  wtford -- V01-01-01
 Add new base class SplitClustersAlgos to provide leftStripCount() either
 to this package or to ClusterAnalyzer.
 SplitClustersProducer:  Add inheritance from SplitClustersAlgos and
@@ -6,8 +15,10 @@ remove leftStripCount() to SplitClustersAlgos.
 Add plugins/SealModule.cc and plugins/Buildfile to create the library
 needed by the Analyzer.
 
+29 Sep 2009  wtford -- Commit V01-01-00
+
 21 Sept 2009  wtford --
-The producer job is leaking about 3MB per event.  This is true even if
+The producer job was leaking about 3MB per event.  This is true even if
 the SplitClustersProducer::produce() method returns at the top.
 The job crashes at event 649.
 25 Sept., 2009

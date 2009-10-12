@@ -14,7 +14,7 @@
 // Original Author:  Marco Cardaci
 //         Created:  Sun Sep 21 15:22:40 CEST 2008
 //         Updated:  Sep 2009 (release 3.1.X) wtford
-// $Id: SplitClustersProducer.cc,v 1.1 2009/09/29 05:31:00 wtford Exp $
+// $Id: SplitClustersProducer.cc,v 1.2 2009/10/05 16:15:36 wtford Exp $
 //
 //
 
@@ -110,7 +110,7 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
  iEvent.getByLabel("siStripMatchedRecHits","rphiRecHit", rechitsrphi);
  iEvent.getByLabel("siStripMatchedRecHits","stereoRecHit", rechitsstereo);
  iEvent.getByLabel("siPixelRecHits",pixelrechits);
- hitAssociator = new TrackerHitAssociator::TrackerHitAssociator(iEvent);
+ hitAssociator = new TrackerHitAssociator(iEvent);
 
  edm::ESHandle<TrackerGeometry> tkgeom;
  iSetup.get<TrackerDigiGeometryRecord>().get( tkgeom );
@@ -172,6 +172,7 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
      else{edm::LogError("TrackerHitAssociator")<<"no cluster reference attached";}
      if(clust != ClusIter) continue;
      SiStripRecHit2D const rechit=*rechitsrphiIter;
+
     // Fill the vector of SimHits associated with this RecHit
      associatedA.clear();
      associatedA = hitAssociator->associateHit(rechit);
@@ -223,6 +224,7 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
        for(size_t k=size_t(stripCounter); k<amp.size(); ++k) tmp2.push_back(amp[k]);
        SiStripCluster* newCluster1 = new SiStripCluster( ClusIter->geographicalId(), ClusIter->firstStrip(), tmp1.begin(), tmp1.end() );
        SiStripCluster* newCluster2 = new SiStripCluster( ClusIter->geographicalId(), ClusIter->firstStrip()+tmp1.size(), tmp2.begin(), tmp2.end() );
+       dumpSimTracks(hitAssociator, clust, newCluster1, newCluster2);
        ssc.push_back(SiStripCluster( *newCluster1 ));
        ssc.push_back(SiStripCluster( *newCluster2 ));
       }else{
@@ -263,6 +265,7 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
        for(size_t k=size_t(stripCounter); k<amp.size(); ++k) tmp2.push_back(amp[k]);
        SiStripCluster* newCluster1 = new SiStripCluster( ClusIter->geographicalId(), ClusIter->firstStrip(), tmp1.begin(), tmp1.end() );
        SiStripCluster* newCluster2 = new SiStripCluster( ClusIter->geographicalId(), ClusIter->firstStrip()+tmp1.size(), tmp2.begin(), tmp2.end() );
+       dumpSimTracks(hitAssociator, clust, newCluster1, newCluster2);
        ssc.push_back(SiStripCluster( *newCluster1 ));
        ssc.push_back(SiStripCluster( *newCluster2 ));
       }else{
@@ -296,6 +299,25 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
  */
  iEvent.put( splittedSiStripClusters , "" ); 
  delete hitAssociator;
+}
+
+//
+//  Find and dump simTracks associated with the original and new split clusters
+//
+void
+SplitClustersProducer::dumpSimTracks(TrackerHitAssociator* hitAssociator, const SiStripCluster* origCluster,
+				     SiStripCluster* newCluster1, SiStripCluster* newCluster2)
+{
+  std::vector<PSimHit> simTkIdOrig = hitAssociator->associateSimpleRecHitCluster(origCluster);
+  std::vector<PSimHit> simTkIdNew1 = hitAssociator->associateSimpleRecHitCluster(newCluster1);
+  std::vector<PSimHit> simTkIdNew2 = hitAssociator->associateSimpleRecHitCluster(newCluster2);
+//   if (origCluster->amplitudes().size() < 4) return;
+//   cout << "No. of simhits (orig, 1, 2): " << simTkIdOrig.size()
+//        << ", " << simTkIdNew1.size() << ", " << simTkIdNew2.size()
+//        << ", widths:  " << origCluster->amplitudes().size()
+//        << ", " << newCluster1->amplitudes().size()
+//        << ", " << newCluster2->amplitudes().size()
+//        << endl;
 }
 
 // ------------ method called once each job just before starting event loop  ------------
