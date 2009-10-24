@@ -30,7 +30,6 @@ class SplitClustersProducer : public edm::EDProducer, public SplitClustersAlgos 
       explicit SplitClustersProducer(const edm::ParameterSet&);
       SplitClustersProducer();
       ~SplitClustersProducer();
-      std::vector<PSimHit> associatedA;
 
    private:
       virtual void beginJob(const edm::EventSetup&) ;
@@ -41,32 +40,38 @@ class SplitClustersProducer : public edm::EDProducer, public SplitClustersAlgos 
 //  Find and dump simTracks associated with the original and new split clusters
 //
       void dumpSimTracks(TrackerHitAssociator*, const SiStripCluster*,
-			 SiStripCluster*, SiStripCluster*);
+			 const SiStripCluster*, const SiStripCluster*, const int);
       
       // ----------member data ---------------------------
 
-      TrackerHitAssociator * hitAssociator;
+      TrackerHitAssociator* hitAssociator;
+      std::vector<SimHitIdpr> associatedIdpr;
+      std::vector<PSimHit> associatedA;
       std::vector<const SiStripCluster*> vPSiStripCluster;
       TRandom rnd;
-  /*
-      //SiStripClusterInfo* clusterInfo;
-      */
-};
 
 //
 // constants, enums and typedefs
 //
 
+      int splitBy;
+      std::string splitByString;
+
 //
 // static data member definitions
 //
 
+};
+
 //
 // constructors and destructor
 //
-SplitClustersProducer::SplitClustersProducer(const edm::ParameterSet& iConfig)
+SplitClustersProducer::SplitClustersProducer(const edm::ParameterSet& iConfig) :
+  splitByString(iConfig.getParameter<std::string>("splitBy"))
 {
-   produces< edmNew::DetSetVector<SiStripCluster> >( "" );
+  produces< edmNew::DetSetVector<SiStripCluster> >( "" );
+  splitBy = SplitClustersAlgos::byHits;
+  if (splitByString == "byTracks") splitBy = SplitClustersAlgos::byTracks;
 }
 
 

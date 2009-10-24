@@ -14,7 +14,7 @@
 // Original Author:  Marco Cardaci
 //         Created:  Sun Sep 21 15:22:40 CEST 2008
 //         Updated:  Sep 2009 (release 3.1.X) wtford
-// $Id: SplitClustersProducer.cc,v 1.2 2009/10/05 16:15:36 wtford Exp $
+// $Id: SplitClustersProducer.cc,v 1.3 2009/10/12 03:46:55 wtford Exp $
 //
 //
 
@@ -115,24 +115,11 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
  edm::ESHandle<TrackerGeometry> tkgeom;
  iSetup.get<TrackerDigiGeometryRecord>().get( tkgeom );
 
- // LOOP on SiStripRecHit2DCollectionNew -> edmNew::DetSetVector<SiStripRecHit2D> (ATTENTION: there is NO COLLECTION in the samples for the moment)
- /*
- auto_ptr< edmNew::DetSetVector<SiStripCluster> > splittedSiStripClusters(new edmNew::DetSetVector<SiStripCluster>());
- splittedSiStripClusters->reserve(10000,4*10000); //FIXME
- for(SiStripRecHit2DCollectionNew::const_iterator DSViter=rechitsrphi->begin(); DSViter != rechitsrphi->end(); DSViter++ ) {
-  edmNew::DetSetVector<SiStripCluster>::FastFiller ssc(* splittedSiStripClusters, DSViter->id());
-  for(edmNew::DetSet<SiStripRecHit2D>::const_iterator RecHitIter=DSViter->begin(); RecHitIter!=DSViter->end(); RecHitIter++) {
-   ....
-   ssc.push_back(SiStripCluster( *newCluster ));
-  }
- }
- */
- 
- // LOOP on DetSetVector<SiStripCluster> to get cluster and fill the splitted ones
+ // LOOP on DetSetVector<SiStripCluster> to get cluster and fill the split ones
  int iclusCnt = 0;
- auto_ptr< edmNew::DetSetVector<SiStripCluster> > splittedSiStripClusters(new edmNew::DetSetVector<SiStripCluster>());
- splittedSiStripClusters->reserve(10000,4*10000); //FIXME
- // Loop over subdetectors?
+ auto_ptr< edmNew::DetSetVector<SiStripCluster> > splitSiStripClusters(new edmNew::DetSetVector<SiStripCluster>());
+ splitSiStripClusters->reserve(10000,4*10000); //FIXME
+ // Loop over subdetectors
  for(edmNew::DetSetVector<SiStripCluster>::const_iterator DSViter=dsv_SiStripCluster->begin(); DSViter != dsv_SiStripCluster->end(); DSViter++ ) {
 
   iclusCnt += DSViter->size();
@@ -141,16 +128,25 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
   uint32_t detid=DSViter->id();
   */
 
-  edmNew::DetSetVector<SiStripCluster>::FastFiller ssc(* splittedSiStripClusters, DSViter->id());
+  edmNew::DetSetVector<SiStripCluster>::FastFiller ssc(* splitSiStripClusters, DSViter->id());
   //if (ssc.empty()) ssc.abort();
 
   // insert the DetSet<SiStripCluster> in the  DetSetVec<SiStripCluster>
 
   // Traverse the clusters for this subdetector
   for(edmNew::DetSet<SiStripCluster>::const_iterator ClusIter= DSViter->begin(); ClusIter!=DSViter->end();ClusIter++) {
+   const SiStripCluster* clust = ClusIter;
+   associatedIdpr.clear();
+   hitAssociator->associateSimpleRecHitCluster(clust, associatedIdpr);
+   associatedA.clear();
+   associatedA = hitAssociator->associateSimpleRecHitCluster(clust);
+   size_t splittableClusterSize = 0;
+   if (splitBy == SplitClustersAlgos::byHits) splittableClusterSize = associatedA.size();
+   else if (splitBy == SplitClustersAlgos::byTracks) splittableClusterSize = associatedIdpr.size();
+   else cout << "SplitClustersProducer:  Invalid splitBy value" << endl;
 
    /*
-   SiStripClusterInfo* clusterInfo = new SiStripClusterInfo(*ClusIter, iSetup);
+   SiStripClusterInfo* clusterInfo = new SiStripClusterInfo(*clust, iSetup);
    const StripGeomDetUnit*_StripGeomDetUnit = dynamic_cast<const StripGeomDetUnit*>(tkgeom->idToDetUnit(DetId(detid)));
    const StripTopology &topol=(StripTopology&)_StripGeomDetUnit->topology();
    MeasurementPoint mp(clusterInfo->baryStrip(),rnd.Uniform(-0.5,0.5));
@@ -159,28 +155,12 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
    delete clusterInfo;
    */
 
-   std::vector<uint8_t> amp=ClusIter->amplitudes();
-   bool copied_cluster = 0;
+   std::vector<uint8_t> amp=clust->amplitudes();
 
-   // Traverse the r-phi RecHits (so we can get to the SimHits)
-   // See e.g. Alignment/CommonAlignmentProducer/src/AlignmentTrackSelector.cc#348
-   const SiStripRecHit2DCollection::DataContainer& rechitsrphiColl = rechitsrphi->data();
-   for(SiStripRecHit2DCollection::DataContainer::const_iterator rechitsrphiIter = rechitsrphiColl.begin(); rechitsrphiIter != rechitsrphiColl.end(); ++rechitsrphiIter) {
-     const SiStripCluster* clust = 0;
-     if(rechitsrphiIter->cluster().isNonnull()){clust=&(*rechitsrphiIter->cluster());}
-     else if(rechitsrphiIter->cluster_regional().isNonnull()){clust=&(*rechitsrphiIter->cluster_regional());}
-     else{edm::LogError("TrackerHitAssociator")<<"no cluster reference attached";}
-     if(clust != ClusIter) continue;
-     SiStripRecHit2D const rechit=*rechitsrphiIter;
+   // Fill the vector of SimHits associated with this Cluster
+   if(splittableClusterSize == 2 && amp.size()>1) {
+     // We have a cluster with more than one strip matched to at least 2 SimHits (or 2 SimTracks)
 
-    // Fill the vector of SimHits associated with this RecHit
-     associatedA.clear();
-     associatedA = hitAssociator->associateHit(rechit);
-     copied_cluster = 1;
-     //short m = 0;
-     if(associatedA.size() == 2 && amp.size()>1)
-     {
-       // We have a cluster with more than one strip matched to at least 2 SimHits
      /*
       float bary = clust->barycenter();
       cout << "Cluster barycenter:" << bary << endl;
@@ -216,88 +196,40 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
       }
     */
 
-      uint8_t stripCounter = leftStripCount(amp, associatedA);
-      if(stripCounter > 0 && stripCounter < amp.size()){
-	// Make and store two clusters
+     uint8_t stripCounter = leftStripCount(amp, associatedA, splitBy);
+     if(stripCounter > 0 && stripCounter < amp.size()) {
+       // Make and store two clusters
        std::vector<uint16_t> tmp1, tmp2;
        for(size_t j=0;j<size_t(stripCounter);++j) tmp1.push_back(amp[j]);
        for(size_t k=size_t(stripCounter); k<amp.size(); ++k) tmp2.push_back(amp[k]);
-       SiStripCluster* newCluster1 = new SiStripCluster( ClusIter->geographicalId(), ClusIter->firstStrip(), tmp1.begin(), tmp1.end() );
-       SiStripCluster* newCluster2 = new SiStripCluster( ClusIter->geographicalId(), ClusIter->firstStrip()+tmp1.size(), tmp2.begin(), tmp2.end() );
-       dumpSimTracks(hitAssociator, clust, newCluster1, newCluster2);
+       SiStripCluster* newCluster1 = new SiStripCluster( clust->geographicalId(), clust->firstStrip(), tmp1.begin(), tmp1.end() );
+       SiStripCluster* newCluster2 = new SiStripCluster( clust->geographicalId(), clust->firstStrip()+tmp1.size(), tmp2.begin(), tmp2.end() );
+//        dumpSimTracks(hitAssociator, clust, newCluster1, newCluster2, splitBy);
        ssc.push_back(SiStripCluster( *newCluster1 ));
        ssc.push_back(SiStripCluster( *newCluster2 ));
-      }else{
+     } else {
 	// One SimHit pulse height is << the other; just store the one cluster
        std::vector<uint16_t> amp_temp;
        for(size_t j=0;j<amp.size();++j) amp_temp.push_back(amp[j]);
-       SiStripCluster* newCluster = new SiStripCluster( ClusIter->geographicalId(), ClusIter->firstStrip(), amp_temp.begin(), amp_temp.end() );
+       SiStripCluster* newCluster = new SiStripCluster( clust->geographicalId(), clust->firstStrip(), amp_temp.begin(), amp_temp.end() );
        ssc.push_back(SiStripCluster( *newCluster ));
-      }
-     }else{
-       // We don't have 2 SimHits; just store cluster in the output DetSetVector
-      std::vector<uint16_t> amp_temp;
-      for(size_t j=0;j<amp.size();++j) amp_temp.push_back(amp[j]);
-      SiStripCluster* newCluster = new SiStripCluster( ClusIter->geographicalId(), ClusIter->firstStrip(), amp_temp.begin(), amp_temp.end() );
-      ssc.push_back(SiStripCluster( *newCluster ));
-     }
-   }  // Traverse r-phi RecHits
-
-   // Traverse the stereo RecHits
-   const SiStripRecHit2DCollection::DataContainer& rechitsstereoColl = rechitsstereo->data();
-   for(SiStripRecHit2DCollection::DataContainer::const_iterator rechitsstereoIter = rechitsstereoColl.begin(); rechitsstereoIter != rechitsstereoColl.end(); ++rechitsstereoIter) {
-     const SiStripCluster* clust = 0; 
-     if(rechitsstereoIter->cluster().isNonnull()){clust=&(*rechitsstereoIter->cluster());}
-     else if(rechitsstereoIter->cluster_regional().isNonnull()){clust=&(*rechitsstereoIter->cluster_regional());}
-     else{edm::LogError("TrackerHitAssociator")<<"no cluster reference attached";}
-     if(clust != ClusIter) continue;
-     SiStripRecHit2D const rechit=*rechitsstereoIter;
-     associatedA.clear();
-     associatedA = hitAssociator->associateHit(rechit);
-     copied_cluster = 1;
-     //short m = 0;
-     if(associatedA.size() == 2 && amp.size()>1){
-
-      uint8_t stripCounter = leftStripCount(amp, associatedA);
-      if(stripCounter > 0 && stripCounter < amp.size()){
-       std::vector<uint16_t> tmp1, tmp2;
-       for(size_t j=0;j<size_t(stripCounter);++j) tmp1.push_back(amp[j]);
-       for(size_t k=size_t(stripCounter); k<amp.size(); ++k) tmp2.push_back(amp[k]);
-       SiStripCluster* newCluster1 = new SiStripCluster( ClusIter->geographicalId(), ClusIter->firstStrip(), tmp1.begin(), tmp1.end() );
-       SiStripCluster* newCluster2 = new SiStripCluster( ClusIter->geographicalId(), ClusIter->firstStrip()+tmp1.size(), tmp2.begin(), tmp2.end() );
-       dumpSimTracks(hitAssociator, clust, newCluster1, newCluster2);
-       ssc.push_back(SiStripCluster( *newCluster1 ));
-       ssc.push_back(SiStripCluster( *newCluster2 ));
-      }else{
-       std::vector<uint16_t> amp_temp;
-       for(size_t j=0;j<amp.size();++j) amp_temp.push_back(amp[j]);
-       SiStripCluster* newCluster = new SiStripCluster( ClusIter->geographicalId(), ClusIter->firstStrip(), amp_temp.begin(), amp_temp.end() );
-       ssc.push_back(SiStripCluster( *newCluster ));
-      }
-     }else{
-      std::vector<uint16_t> amp_temp;
-      for(size_t j=0;j<amp.size();++j) amp_temp.push_back(amp[j]);
-      SiStripCluster* newCluster = new SiStripCluster( ClusIter->geographicalId(), ClusIter->firstStrip(), amp_temp.begin(), amp_temp.end() );
-      ssc.push_back(SiStripCluster( *newCluster ));
-     }
-   } // Traverse the stereo RecHits
-
-   if(copied_cluster == 0){
-//     cout << "Cluster not associated to a RecHit:" << endl; 
-    std::vector<uint16_t> amp_temp;
-    for(size_t j=0;j<amp.size();++j) amp_temp.push_back(amp[j]);
-    SiStripCluster* newCluster = new SiStripCluster( ClusIter->geographicalId(), ClusIter->firstStrip(), amp_temp.begin(), amp_temp.end() );
-    ssc.push_back(SiStripCluster( *newCluster ));
+     } 
+   }else {
+     // We don't have 2 SimHits; just store cluster in the output DetSetVector
+     std::vector<uint16_t> amp_temp;
+     for(size_t j=0;j<amp.size();++j) amp_temp.push_back(amp[j]);
+     SiStripCluster* newCluster = new SiStripCluster( clust->geographicalId(), clust->firstStrip(), amp_temp.begin(), amp_temp.end() );
+     ssc.push_back(SiStripCluster( *newCluster ));
    }
   }  // traverse clusters in subdetector
  }  // traverse subdetectors
  /*
  cout << "Number of initial clusters = " << iclusCnt << endl;
  int oclusCnt = 0;
- for(edmNew::DetSetVector<SiStripCluster>::const_iterator ODSViter=splittedSiStripClusters->begin(); ODSViter != splittedSiStripClusters->end(); ODSViter++ )   oclusCnt += ODSViter->size();
+ for(edmNew::DetSetVector<SiStripCluster>::const_iterator ODSViter=splitSiStripClusters->begin(); ODSViter != splitSiStripClusters->end(); ODSViter++ )   oclusCnt += ODSViter->size();
  cout << "Number of split clusters = " << oclusCnt << endl;
  */
- iEvent.put( splittedSiStripClusters , "" ); 
+ iEvent.put( splitSiStripClusters , "" ); 
  delete hitAssociator;
 }
 
@@ -306,18 +238,36 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
 //
 void
 SplitClustersProducer::dumpSimTracks(TrackerHitAssociator* hitAssociator, const SiStripCluster* origCluster,
-				     SiStripCluster* newCluster1, SiStripCluster* newCluster2)
+				     const SiStripCluster* newCluster1, const SiStripCluster* newCluster2,
+				     const int splitBy)
 {
-  std::vector<PSimHit> simTkIdOrig = hitAssociator->associateSimpleRecHitCluster(origCluster);
-  std::vector<PSimHit> simTkIdNew1 = hitAssociator->associateSimpleRecHitCluster(newCluster1);
-  std::vector<PSimHit> simTkIdNew2 = hitAssociator->associateSimpleRecHitCluster(newCluster2);
-//   if (origCluster->amplitudes().size() < 4) return;
-//   cout << "No. of simhits (orig, 1, 2): " << simTkIdOrig.size()
-//        << ", " << simTkIdNew1.size() << ", " << simTkIdNew2.size()
-//        << ", widths:  " << origCluster->amplitudes().size()
-//        << ", " << newCluster1->amplitudes().size()
-//        << ", " << newCluster2->amplitudes().size()
-//        << endl;
+  std::vector<uint8_t> amp0 = origCluster->amplitudes();
+//   if (amp0.size() < 4) return;
+  std::vector<uint8_t> amp1 = newCluster1->amplitudes();
+  std::vector<uint8_t> amp2 = newCluster2->amplitudes();
+  if (splitBy == SplitClustersAlgos::byHits) {
+    std::vector<PSimHit> simHitOrig = hitAssociator->associateSimpleRecHitCluster(origCluster);  cout << "-------------" << endl;
+    std::vector<PSimHit> simHitNew1 = hitAssociator->associateSimpleRecHitCluster(newCluster1);  cout << "............." << endl;
+    std::vector<PSimHit> simHitNew2 = hitAssociator->associateSimpleRecHitCluster(newCluster2);
+    cout << "No. of simhits (orig, 1, 2): ";
+    cout << simHitOrig.size() << ", " << simHitNew1.size() << ", " << simHitNew2.size();
+  } else {  // byTracks
+    std::vector<SimHitIdpr> simTkIdOrig;  simTkIdOrig.clear();
+    std::vector<SimHitIdpr> simTkIdNew1;  simTkIdNew1.clear();
+    std::vector<SimHitIdpr> simTkIdNew2;  simTkIdNew2.clear();
+    hitAssociator->associateSimpleRecHitCluster(origCluster, simTkIdOrig);  cout << "-------------" << endl;
+    hitAssociator->associateSimpleRecHitCluster(newCluster1, simTkIdNew1);  cout << "............." << endl;
+    hitAssociator->associateSimpleRecHitCluster(newCluster2, simTkIdNew2);
+    cout << "No. of simhits (orig, 1, 2): ";
+    cout << simTkIdOrig.size() << ", " << simTkIdNew1.size() << ", " << simTkIdNew2.size();
+  }
+  cout << ", widths:  " << amp0.size()
+       << ", " << amp1.size()
+       << ", " << amp2.size();
+  cout << ", first: " << origCluster->firstStrip();  cout << ", amps:" ;
+  for (size_t i=0; i<amp1.size(); ++i) cout << " " << int(amp1[i]);  cout << " |";
+  for (size_t i=0; i<amp2.size(); ++i) cout << " " << int(amp2[i]);  cout << endl;
+  cout << "dumpSimTracks end ================================================================" << endl;
 }
 
 // ------------ method called once each job just before starting event loop  ------------

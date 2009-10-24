@@ -1,3 +1,14 @@
+24 Oct 2009  wtford -- V01-01-03
+SplitClustersProducer:  Remove loops on RecHits, since we now have
+access to hit association directly from the cluster.  (Needs
+SimTracker/TrackerHitAssociation V01-04-05.)
+SplitClustersProducer, SplitClustersAlgos:  Add option to split clusters
+associated with 2 SimTrackracks, as alternative to splitting when there
+are 2 associated SimHits.  In the config one can now set
+process.siStripSplitClusters = cms.EDProducer("SplitClustersProducer",
+                                              splitBy = cms.string('byHits'))
+or                                                                 'byTracks'
+
 11 Oct 2009  wtford -- V01-01-02
 SplitClustersProducer:  add method SplitClustersProducer::dumpSimTracks
 to inspect the original and split clusters.  This requires also the tags
