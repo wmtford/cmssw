@@ -453,7 +453,7 @@ void ClusterAnalyzer::analyze(const edm::Event& e, const edm::EventSetup& es) {
  // All RecHits are taken into account  //
  /////////////////////////////////////////
 
- int clusters_to_be_splitted=0;
+ int clusters_to_be_split=0;
  int rechitscounter=0;
  int rechitscounterTID[3];
  int rechitscounterTIB[4];
@@ -520,7 +520,7 @@ void ClusterAnalyzer::analyze(const edm::Event& e, const edm::EventSetup& es) {
    associatedA = hitAssociator->associateHit(rechit);
 
 
-   //Evaluate clusters to be splitted quantities
+   //Evaluate clusters to be split quantities
 
    std::vector<uint8_t> amp=clust->amplitudes();
    float totalEnergy = 0, leftAmplitudeFraction = 0;
@@ -528,8 +528,7 @@ void ClusterAnalyzer::analyze(const edm::Event& e, const edm::EventSetup& es) {
    int charge = 0;
    if(associatedA.size()==2 && amp.size()>1){   
     for (size_t i=0;i<amp.size();++i) charge += amp[i];
-//     stripCounter = splitter_.leftStripCount(amp, associatedA, totalEnergy, leftAmplitudeFraction);
-    stripCounter = leftStripCount(amp, associatedA, totalEnergy, leftAmplitudeFraction);
+    stripCounter = leftStripCount(amp, associatedA, totalEnergy, leftAmplitudeFraction, SplitClustersAlgos::byHits);
 
     if(stripCounter > 0 && stripCounter < amp.size()){
      std::vector<uint16_t> tmp1, tmp2;
@@ -570,7 +569,7 @@ void ClusterAnalyzer::analyze(const edm::Event& e, const edm::EventSetup& es) {
     //Counting number of merged RecHits
     if(associatedA.size()>1){
      if(associatedA.size()==2 && amp.size()>1 && stripCounter >0 && stripCounter < amp.size()){
-      clusters_to_be_splitted++;
+      clusters_to_be_split++;
       hClustersToBeSplitCharge->Fill(charge);
       hClusterToBeSplitWidth->Fill(amp.size());
       hClustersToBeSplitChargeVSEnergyLossTotal->Fill(charge, totalEnergy);
@@ -636,15 +635,14 @@ void ClusterAnalyzer::analyze(const edm::Event& e, const edm::EventSetup& es) {
    associatedA.clear();
    associatedA = hitAssociator->associateHit(rechit);
 
-   //Evaluate clusters to be splitted quantities
+   //Evaluate clusters to be split quantities
    std::vector<uint8_t> amp=clust->amplitudes();
    float totalEnergy = 0, leftAmplitudeFraction = 0;
    uint8_t stripCounter = 0;
    int charge = 0;
    if(associatedA.size()==2 && amp.size()>1){   
     for (size_t i=0;i<amp.size();++i) charge += amp[i];
-//     stripCounter = splitter_.leftStripCount(amp, associatedA, totalEnergy, leftAmplitudeFraction);
-    stripCounter = leftStripCount(amp, associatedA, totalEnergy, leftAmplitudeFraction);
+    stripCounter = leftStripCount(amp, associatedA, totalEnergy, leftAmplitudeFraction, SplitClustersAlgos::byHits);
 
     if(stripCounter > 0 && stripCounter < amp.size()){
      std::vector<uint16_t> tmp1, tmp2;
@@ -685,7 +683,7 @@ void ClusterAnalyzer::analyze(const edm::Event& e, const edm::EventSetup& es) {
     //Counting number of merged RecHits
     if(associatedA.size()>1){
      if(associatedA.size()==2 && amp.size()>1 && stripCounter >0 && stripCounter < amp.size()){
-      clusters_to_be_splitted++;
+      clusters_to_be_split++;
       hClustersToBeSplitCharge->Fill(charge);
       hClusterToBeSplitWidth->Fill(amp.size());
       hClustersToBeSplitChargeVSEnergyLossTotal->Fill(charge, totalEnergy);
@@ -750,7 +748,7 @@ void ClusterAnalyzer::analyze(const edm::Event& e, const edm::EventSetup& es) {
   hDenominatorMergedFractionAssociatingTEC[i]->Fill(associatingcounterTEC[i]);
  }
 
- hClustersToBeSplit->Fill(clusters_to_be_splitted);
+ hClustersToBeSplit->Fill(clusters_to_be_split);
 
  ////////////////////////////////////////////////////////////////////////////////
  // PART B of the Analyzer:                                                    //
@@ -775,7 +773,7 @@ void ClusterAnalyzer::analyze(const edm::Event& e, const edm::EventSetup& es) {
  // LOOP over tracks                                                           //
   ////////////////////////////////////////////////////////////////////////////////
 
- int clusters_to_be_splitted_from_tracks = 0;
+ int clusters_to_be_split_from_tracks = 0;
 
  std::vector<DetId> gIdVector;
  gIdVector.reserve(100000);
@@ -877,7 +875,7 @@ void ClusterAnalyzer::analyze(const edm::Event& e, const edm::EventSetup& es) {
     //cout << "Pixel RecHit!" << endl;
    }
 
-   // Plots of clusters to be splitted from Tracks
+   // Plots of clusters to be split from Tracks
    if(sistripsimplehit && read_rechit == 0){
     std::vector<uint8_t> amp=sistripsimplehit->cluster()->amplitudes();
     float totalEnergy = 0, leftAmplitudeFraction = 0;
@@ -885,8 +883,7 @@ void ClusterAnalyzer::analyze(const edm::Event& e, const edm::EventSetup& es) {
     int charge = 0;
     if(associatedT.size()==2 && amp.size()>1){
      for (size_t i=0;i<amp.size();++i) charge += amp[i];
-//      stripCounter = splitter_.leftStripCount(amp, associatedT, totalEnergy, leftAmplitudeFraction);
-     stripCounter = leftStripCount(amp, associatedT, totalEnergy, leftAmplitudeFraction);
+     stripCounter = leftStripCount(amp, associatedT, totalEnergy, leftAmplitudeFraction, SplitClustersAlgos::byHits);
 
      if(stripCounter>0 && stripCounter<amp.size()){
       std::vector<uint16_t> tmp1, tmp2;
@@ -912,7 +909,7 @@ void ClusterAnalyzer::analyze(const edm::Event& e, const edm::EventSetup& es) {
       hCluterDeltaPositionsP2P0FromTracks->Fill(barycenter2 - sistripsimplehit->cluster()->barycenter());
      }
      if(associatedT.size()==2 && amp.size()>1 && stripCounter>0 && stripCounter<amp.size()){
-      clusters_to_be_splitted_from_tracks++;
+      clusters_to_be_split_from_tracks++;
       hClustersToBeSplitChargeFromTracks->Fill(charge);
       hClusterToBeSplitWidthFromTracks->Fill(amp.size());
       hClustersToBeSplitChargeVSEnergyLossTotalFromTracks->Fill(charge, totalEnergy);
@@ -929,8 +926,8 @@ void ClusterAnalyzer::analyze(const edm::Event& e, const edm::EventSetup& es) {
     if(associatedT.size()==2 && (ampMono.size()>1 || ampStereo.size()>1) ){
      for (size_t i=0;i<ampMono.size();++i) chargeMono += ampMono[i];
      for (size_t i=0;i<ampStereo.size();++i) chargeStereo += ampStereo[i];
-     stripCounterMono = leftStripCount(ampMono, associatedT, totalEnergy, leftAmplitudeFraction);
-     stripCounterStereo = leftStripCount(ampStereo, associatedT, totalEnergy, leftAmplitudeFraction);
+     stripCounterMono = leftStripCount(ampMono, associatedT, totalEnergy, leftAmplitudeFraction, SplitClustersAlgos::byHits);
+     stripCounterStereo = leftStripCount(ampStereo, associatedT, totalEnergy, leftAmplitudeFraction, SplitClustersAlgos::byHits);
 
      if(stripCounterMono>0 && stripCounterMono<ampMono.size()){
       std::vector<uint16_t> tmp1, tmp2;
@@ -984,7 +981,7 @@ void ClusterAnalyzer::analyze(const edm::Event& e, const edm::EventSetup& es) {
       hClustersToBeSplitChargeVSEnergyLossTotalFromTracks->Fill(chargeMono, totalEnergy);
      }
      if(associatedT.size()==2 && ampStereo.size()>1 && stripCounterStereo>0 && stripCounterStereo<ampStereo.size()){
-      clusters_to_be_splitted_from_tracks++;
+      clusters_to_be_split_from_tracks++;
       hClustersToBeSplitChargeFromTracks->Fill(chargeStereo);
       hClusterToBeSplitWidthFromTracks->Fill(ampStereo.size());
       hClustersToBeSplitChargeVSEnergyLossTotalFromTracks->Fill(chargeStereo, totalEnergy);
@@ -1200,7 +1197,7 @@ void ClusterAnalyzer::analyze(const edm::Event& e, const edm::EventSetup& es) {
  hDenominatorMergedFractionFromTracksTEC[6]->Fill(RecHitTIB[6]);
  hDenominatorMergedFractionFromTracksTEC[7]->Fill(RecHitTIB[7]);
  hDenominatorMergedFractionFromTracksTEC[8]->Fill(RecHitTIB[8]);
- hClustersToBeSplitFromTracks->Fill(clusters_to_be_splitted_from_tracks);
+ hClustersToBeSplitFromTracks->Fill(clusters_to_be_split_from_tracks);
 
  ////////////////////////////////////////
  // PART C of the Analyzer:            //

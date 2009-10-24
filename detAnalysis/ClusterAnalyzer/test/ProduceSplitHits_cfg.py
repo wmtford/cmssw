@@ -93,7 +93,8 @@ process.source = source
 
 #process.Timing = cms.Service("Timing")
 #process.SimpleMemoryCheck = cms.Service("SimpleMemoryCheck")
-process.siStripSplitClusters = cms.EDProducer("SplitClustersProducer")
+process.siStripSplitClusters = cms.EDProducer("SplitClustersProducer",
+                                              splitBy = cms.string('byHits'))
 process.out = cms.OutputModule("PoolOutputModule",
  outputCommands = cms.untracked.vstring('drop *',
   'keep *_siStripSplitClusters_*_*',

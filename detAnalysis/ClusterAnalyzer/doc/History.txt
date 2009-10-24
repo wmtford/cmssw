@@ -1,3 +1,8 @@
+24 Oct 2009  wtford -- V01-01-02
+ClusterAnalyzer:  change calls to leftStripCount to match new signature
+in V01-01-03 of SplitClustersProducer.  At present only the split byHits
+option is supported; this needs to be fixed.
+
 4 Oct 2009  wtford -- V01-01-01
 Requires wtfRecoLocalTracker/SplitClustersProducer V01-01-01 (or later)
 ClusterAnalyzer:  Add inheritance from
