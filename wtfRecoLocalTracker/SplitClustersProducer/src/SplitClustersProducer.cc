@@ -14,7 +14,7 @@
 // Original Author:  Marco Cardaci
 //         Created:  Sun Sep 21 15:22:40 CEST 2008
 //         Updated:  Sep 2009 (release 3.1.X) wtford
-// $Id: SplitClustersProducer.cc,v 1.3 2009/10/12 03:46:55 wtford Exp $
+// $Id: SplitClustersProducer.cc,v 1.4 2009/10/24 21:31:57 wtford Exp $
 //
 //
 
@@ -139,7 +139,7 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
    associatedIdpr.clear();
    hitAssociator->associateSimpleRecHitCluster(clust, associatedIdpr);
    associatedA.clear();
-   associatedA = hitAssociator->associateSimpleRecHitCluster(clust);
+   hitAssociator->associateSimpleRecHitCluster(clust, associatedA);
    size_t splittableClusterSize = 0;
    if (splitBy == SplitClustersAlgos::byHits) splittableClusterSize = associatedA.size();
    else if (splitBy == SplitClustersAlgos::byTracks) splittableClusterSize = associatedIdpr.size();
@@ -246,9 +246,12 @@ SplitClustersProducer::dumpSimTracks(TrackerHitAssociator* hitAssociator, const 
   std::vector<uint8_t> amp1 = newCluster1->amplitudes();
   std::vector<uint8_t> amp2 = newCluster2->amplitudes();
   if (splitBy == SplitClustersAlgos::byHits) {
-    std::vector<PSimHit> simHitOrig = hitAssociator->associateSimpleRecHitCluster(origCluster);  cout << "-------------" << endl;
-    std::vector<PSimHit> simHitNew1 = hitAssociator->associateSimpleRecHitCluster(newCluster1);  cout << "............." << endl;
-    std::vector<PSimHit> simHitNew2 = hitAssociator->associateSimpleRecHitCluster(newCluster2);
+    std::vector<PSimHit> simHitOrig;  simHitOrig.clear();
+    std::vector<PSimHit> simHitNew1;  simHitNew1.clear();
+    std::vector<PSimHit> simHitNew2;  simHitNew2.clear();
+    hitAssociator->associateSimpleRecHitCluster(origCluster, simHitOrig);  cout << "-------------" << endl;
+    hitAssociator->associateSimpleRecHitCluster(newCluster1, simHitNew1);  cout << "............." << endl;
+    hitAssociator->associateSimpleRecHitCluster(newCluster2, simHitNew2);
     cout << "No. of simhits (orig, 1, 2): ";
     cout << simHitOrig.size() << ", " << simHitNew1.size() << ", " << simHitNew2.size();
   } else {  // byTracks
