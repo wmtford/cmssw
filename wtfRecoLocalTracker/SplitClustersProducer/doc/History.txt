@@ -1,3 +1,8 @@
+3 Nov 2009  wtford -- V01-01-05
+Use new interface to TrackerHitAssociator::associateSimpleRecHitCluster,
+which avoids calling it twice.
+(needs SimTracker/TrackerHitAssociation V01-04-07)
+
 27 Oct 2009  wtford -- V01-01-04
 SplitClustersProducer:  Change call to
 TrackerHitAssociator::associateSimpleRecHitCluster to match modified

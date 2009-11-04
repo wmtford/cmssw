@@ -14,7 +14,7 @@
 // Original Author:  Marco Cardaci
 //         Created:  Sun Sep 21 15:22:40 CEST 2008
 //         Updated:  Sep 2009 (release 3.1.X) wtford
-// $Id: SplitClustersProducer.cc,v 1.4 2009/10/24 21:31:57 wtford Exp $
+// $Id: SplitClustersProducer.cc,v 1.5 2009/10/27 19:03:21 wtford Exp $
 //
 //
 
@@ -137,13 +137,15 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
   for(edmNew::DetSet<SiStripCluster>::const_iterator ClusIter= DSViter->begin(); ClusIter!=DSViter->end();ClusIter++) {
    const SiStripCluster* clust = ClusIter;
    associatedIdpr.clear();
-   hitAssociator->associateSimpleRecHitCluster(clust, associatedIdpr);
    associatedA.clear();
-   hitAssociator->associateSimpleRecHitCluster(clust, associatedA);
    size_t splittableClusterSize = 0;
-   if (splitBy == SplitClustersAlgos::byHits) splittableClusterSize = associatedA.size();
-   else if (splitBy == SplitClustersAlgos::byTracks) splittableClusterSize = associatedIdpr.size();
-   else cout << "SplitClustersProducer:  Invalid splitBy value" << endl;
+   if (splitBy == SplitClustersAlgos::byHits) {
+     hitAssociator->associateSimpleRecHitCluster(clust, associatedA);
+     splittableClusterSize = associatedA.size();
+   } else if (splitBy == SplitClustersAlgos::byTracks) {
+     hitAssociator->associateSimpleRecHitCluster(clust, associatedIdpr, associatedA);
+     splittableClusterSize = associatedIdpr.size();
+   } else cout << "SplitClustersProducer:  Invalid splitBy value" << endl;
 
    /*
    SiStripClusterInfo* clusterInfo = new SiStripClusterInfo(*clust, iSetup);
