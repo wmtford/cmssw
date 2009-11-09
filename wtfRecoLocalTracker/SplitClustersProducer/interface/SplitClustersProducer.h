@@ -19,6 +19,12 @@
 
 #include "wtfRecoLocalTracker/SplitClustersProducer/interface/SplitClustersAlgos.h"
 
+
+#include "SimDataFormats/TrackingHit/interface/PSimHit.h"
+#include "SimDataFormats/TrackingHit/interface/PSimHitContainer.h"
+
+
+
 typedef std::pair<uint32_t, EncodedEventId> SimHitIdpr;
 
 //
@@ -49,6 +55,14 @@ class SplitClustersProducer : public edm::EDProducer, public SplitClustersAlgos 
       std::vector<PSimHit> associatedA;
       std::vector<const SiStripCluster*> vPSiStripCluster;
       TRandom rnd;
+
+      /*Marco*/
+      edm::Handle<CrossingFrame<PSimHit> > cf_simhit;
+      std::vector<const CrossingFrame<PSimHit> *> cf_simhitvec;
+      MixCollection<PSimHit>  TrackerHits;
+      typedef std::vector<std::string> vstring;
+      vstring trackerContainers;
+      edm::Handle< edm::DetSetVector<StripDigiSimLink> >  stripdigisimlink;
 
 //
 // constants, enums and typedefs
