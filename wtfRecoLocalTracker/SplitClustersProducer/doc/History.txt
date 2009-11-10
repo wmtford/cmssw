@@ -1,3 +1,9 @@
+
+9 Nov 2009  wtford -- V01-01-07
+SplitClustersProducer:  Change logic to fill all elements of amp arrays,
+preserve special amp values 254, 255.  Debug printout is active in this
+version. 
+
 8 Nov 2009  wtford -- V01-01-06
 SplitClustersProducer:  Split (byHits) by inserting the simHits in
 cluster form, obtained by use of the fraction() method of the
