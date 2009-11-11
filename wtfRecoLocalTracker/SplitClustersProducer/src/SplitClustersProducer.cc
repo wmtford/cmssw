@@ -14,7 +14,7 @@
 // Original Author:  Marco Cardaci
 //         Created:  Sun Sep 21 15:22:40 CEST 2008
 //         Updated:  Sep 2009 (release 3.1.X) wtford
-// $Id: SplitClustersProducer.cc,v 1.7 2009/11/09 06:07:37 wtford Exp $
+// $Id: SplitClustersProducer.cc,v 1.8 2009/11/10 05:29:23 wtford Exp $
 //
 //
 
@@ -101,7 +101,8 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
  // using namespace reco;
  using namespace std;
 
-  /*Marco*/
+ bool printOut = false;
+
   trackerContainers.clear();
   cf_simhit.clear();
   cf_simhitvec.clear();
@@ -129,7 +130,6 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
   
   std::auto_ptr<MixCollection<PSimHit> > allTrackerHits(new MixCollection<PSimHit>(cf_simhitvec));
   TrackerHits = (*allTrackerHits);
-  /*Marco*/
 
  /////////////////////////
  // Cluster collections //
@@ -150,9 +150,7 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
  iEvent.getByLabel("siPixelRecHits",pixelrechits);
  hitAssociator = new TrackerHitAssociator(iEvent);
 
- /*Marco*/
  iEvent.getByLabel("simSiStripDigis", stripdigisimlink);
- /*Marco*/
 
  edm::ESHandle<TrackerGeometry> tkgeom;
  iSetup.get<TrackerDigiGeometryRecord>().get( tkgeom );
@@ -166,10 +164,8 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
 
   iclusCnt += DSViter->size();
   
-  /*Marco*/
   uint32_t detID=DSViter->id();
   edm::DetSetVector<StripDigiSimLink>::const_iterator isearch = stripdigisimlink->find(detID);
-  /*Marco*/
 
   edmNew::DetSetVector<SiStripCluster>::FastFiller ssc(* splitSiStripClusters, DSViter->id());
   //if (ssc.empty()) ssc.abort();
@@ -206,10 +202,8 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
 
    // Fill the vector of SimHits associated with this Cluster
 
-   /*Marco*/
 //    if(splittableClusterSize == 2) {
    if(splittableClusterSize == 2 && amp.size()>1) {
-   /*Marco*/
 
      // We have a cluster with more than one strip matched to at least 2 SimHits (or 2 SimTracks)
 
@@ -252,33 +246,45 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
 //   uint16_t stripCounter = leftStripCount(amp, associatedA, splitBy);
 //   if(stripCounter > 0 && stripCounter < amp.size()) {
 
-      /*Marco*/
 //    std::cout << "New Cluster" << std::endl;
       int clusiz = amp.size();
       int first  = clust->firstStrip();
       int last   = first + clusiz;
+      uint16_t rawAmpl = 0, currentAmpl = 0;
+
       bool first_link = false;
       bool first_firstStrip1 = false;
       bool first_firstStrip2 = false;
-//       unsigned int trackID = 0;
       int first_CFpos = 0;
       std::vector<uint16_t> tmp1, tmp2;
       int firstStrip1 = 9999;
       int firstStrip2 = 9999;
+
+      std::vector<int> firstStrip;
+      std::vector<bool> trackInStrip;
+      std::vector<unsigned int> trackID;
+      std::vector<float> trackFraction;
+      std::vector< std::vector<uint16_t> > trackAmp;
+      unsigned int currentChannel(9999);
+      unsigned int thisTrackID = 0;
+
       if(isearch != stripdigisimlink->end()) {
        edm::DetSet<StripDigiSimLink> link_detset = (*isearch);
-       cout << "detID = " << detID << endl;
-       for(edm::DetSet<StripDigiSimLink>::const_iterator linkiter = link_detset.data.begin(); linkiter != link_detset.data.end(); linkiter++){
+       if (printOut) cout << "detID = " << detID << endl;
+       for(edm::DetSet<StripDigiSimLink>::const_iterator linkiter = link_detset.data.begin();
+	   linkiter != link_detset.data.end(); linkiter++){
         if( (int)(linkiter->channel()) >= first  && (int)(linkiter->channel()) < last ){
 	 int currentCFPos = linkiter->CFposition()-1;
 	 int stripIdx = (int)linkiter->channel()-first;
-	 uint16_t rawAmpl = (uint16_t)(amp[stripIdx]);
- 	 printf("%s%4d%s%5d%s%8d%s%8d%s%3d%s%8.4f\n", "CHANNEL = ", linkiter->channel(), " Ampl = ", rawAmpl,
-	        " TrackID = ", linkiter->SimTrackId(), " CFPos-1 = ", currentCFPos, " Process = ",
-	        TrackerHits.getObject(currentCFPos).processType(), " fraction = ", linkiter->fraction());
+	 rawAmpl = (uint16_t)(amp[stripIdx]);
+ 	 if (printOut)
+	   printf("%s%4d%s%5d%s%8d%s%8d%s%3d%s%8.4f\n", "CHANNEL = ", linkiter->channel(), " Ampl = ", rawAmpl,
+		  " TrackID = ", linkiter->SimTrackId(), " CFPos-1 = ", currentCFPos, " Process = ",
+		  TrackerHits.getObject(currentCFPos).processType(), " fraction = ", linkiter->fraction());
+
 	 if (splitBy == SplitClustersAlgos::byHits) {
+
 	  if (first_link == false) {
-// 	    trackID = linkiter->SimTrackId();
 	    first_CFpos = currentCFPos;
 	    first_link = true;
 	  }
@@ -297,33 +303,109 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
 	      first_firstStrip2 = true;
 	    }
           }
+
 	 } else if (splitBy == SplitClustersAlgos::byTracks) {
-	   // (under construction)
+
+	   // DigiSimLinks are ordered first by channel; there can be > 1 track, and > 1 simHit for each track
+
+	   if (linkiter->channel() != currentChannel) {
+	     // New strip; store amplitudes for the previous one
+	     uint16_t thisAmpl;
+	     for (size_t i=0; i<trackID.size(); ++i) {
+	       if (trackInStrip[i]) {
+		 if ((thisAmpl=currentAmpl) < 254)
+		   thisAmpl = min(uint16_t(253), max(uint16_t(0), (uint16_t)(currentAmpl*trackFraction[i]+0.5)));
+		 trackAmp[i].push_back(thisAmpl);
+	       }
+	       trackFraction[i] = 0;
+	       trackInStrip[i] = false;
+	     }
+	     currentChannel = linkiter->channel();
+	     currentAmpl = rawAmpl;
+	   }
+
+	   // Now deal with this new DigiSimLink
+	   thisTrackID = linkiter->SimTrackId();
+	   // Have we seen this track yet?
+	   bool newTrack = true;
+	   int thisTrackIdx = 9999;
+	   for (size_t i=0; i<trackID.size(); ++i) {
+	     if (trackID[i] == thisTrackID) {
+	       thisTrackIdx = i;
+	       newTrack = false;
+	     }
+	   }
+	   if (newTrack) {
+	     trackInStrip.push_back(false);  // We'll set it true below
+	     trackID.push_back(thisTrackID);
+	     firstStrip.push_back(currentChannel);
+	     std::vector<uint16_t> ampTmp;
+ 	     trackAmp.push_back(ampTmp);
+	     trackFraction.push_back(0);
+	     thisTrackIdx = trackID.size()-1;
+	   }
+	   trackInStrip[thisTrackIdx] = true;
+	   trackFraction[thisTrackIdx] += linkiter->fraction();
+	   currentAmpl = rawAmpl;
 	 } else {};
         }
-       }
-       SiStripCluster* newCluster1 = new SiStripCluster( clust->geographicalId(), firstStrip1, tmp1.begin(), tmp1.end() );
-       SiStripCluster* newCluster2 = new SiStripCluster( clust->geographicalId(), firstStrip2, tmp2.begin(), tmp2.end() );
-//        if (firstStrip1 < first || firstStrip1 >= last || firstStrip2 < first || firstStrip2 >= last
-// 	   || tmp1.size() <= 0 || tmp2.size() <= 0)
+       } // end of loop over DigiSimLinks
+
+       if (splitBy == SplitClustersAlgos::byHits) {
+	 SiStripCluster* newCluster1 = new SiStripCluster( clust->geographicalId(), firstStrip1, tmp1.begin(), tmp1.end() );
+	 SiStripCluster* newCluster2 = new SiStripCluster( clust->geographicalId(), firstStrip2, tmp2.begin(), tmp2.end() );
+
+       if (printOut || firstStrip1 < first || firstStrip1 >= last || firstStrip2 < first
+	   || firstStrip2 >= last || tmp1.size() <= 0 || tmp2.size() <= 0)
 	 dumpSimTracks(hitAssociator, clust, newCluster1, newCluster2, splitBy);
 
        // Check if there are clusters with all amplitudes = 0
-       bool tmp1_check = false;
-       if(tmp1.size() > 0){ for(size_t j=0;j<tmp1.size();++j){ if(tmp1[j] >0){ tmp1_check = true; }}}
-       bool tmp2_check = false;
-       if(tmp2.size() > 0){ for(size_t j=0;j<tmp2.size();++j){ if(tmp2[j] >0){ tmp2_check = true; }}}
+	 bool tmp1_check = false;
+	 if(tmp1.size() > 0){ for(size_t j=0;j<tmp1.size();++j){ if(tmp1[j] >0){ tmp1_check = true; }}}
+	 bool tmp2_check = false;
+	 if(tmp2.size() > 0){ for(size_t j=0;j<tmp2.size();++j){ if(tmp2[j] >0){ tmp2_check = true; }}}
 
        // Exclude clusters with firsStrip uninitialized, size of the vector of amplitudes =< 0 and clusters with all amplitudes = 0
-       if(firstStrip1 != 9999 && tmp1.size() > 0 && tmp1_check == true){ssc.push_back(SiStripCluster( *newCluster1 ));
-       } else {
-	 std::cout << "Missing cluster1" << std::endl;
-       }
+	 if(firstStrip1 != 9999 && tmp1.size() > 0 && tmp1_check == true){ssc.push_back(SiStripCluster( *newCluster1 ));
+	 } else {
+	   std::cout << "Missing cluster1" << std::endl;
+	   delete newCluster1;
+	 }
 
-       if(firstStrip2 != 9999 && tmp2.size() > 0 && tmp2_check == true){ssc.push_back(SiStripCluster( *newCluster2 ));
-       } else {
-	 std::cout << "Missing cluster2" << std::endl;
-       }
+	 if(firstStrip2 != 9999 && tmp2.size() > 0 && tmp2_check == true){ssc.push_back(SiStripCluster( *newCluster2 ));
+	 } else {
+	   std::cout << "Missing cluster2" << std::endl;
+	   delete newCluster2;
+	 }
+
+       } else if (splitBy == SplitClustersAlgos::byTracks) {
+
+	 std::vector<SiStripCluster*> newCluster;
+	 // Fill amplitudes for the last strip and create a cluster for each track
+	 uint16_t thisAmpl;
+	 for (size_t i=0; i < trackID.size(); ++i) {
+	   if (trackInStrip[i]) {
+	     if ((thisAmpl=rawAmpl) < 254) thisAmpl = min(uint16_t(253), max(uint16_t(0), (uint16_t)(rawAmpl*trackFraction[i]+0.5)));
+	     trackAmp[i].push_back(thisAmpl);
+	   }
+	   SiStripCluster* newClusteri = new SiStripCluster(clust->geographicalId(), firstStrip[i],
+							    trackAmp[i].begin(), trackAmp[i].end() );
+	   newCluster.push_back(newClusteri);
+	 }
+	 if (printOut || firstStrip[0] < first || firstStrip[0] >= last || firstStrip[1] < first
+ 	     || firstStrip[1] >= last || trackAmp[0].size() <= 0 || trackAmp[1].size() <= 0)
+	   dumpSimTracks(hitAssociator, clust, newCluster[0], newCluster[1], splitBy);
+	 for (size_t i=0; i < trackID.size(); ++i) {
+	   bool emptyCluster = true;
+	   for(size_t j=0; j<trackAmp[i].size(); ++j) if((trackAmp[i])[j] >0) emptyCluster = false;
+	   if (!emptyCluster && firstStrip[i] != 9999 && trackAmp[i].size() > 0) {
+	     ssc.push_back(SiStripCluster( *newCluster[i]));
+	   } else {
+	     std::cout << "Missing cluster" << i << std::endl;
+ 	     delete newCluster[i];
+	   }
+	 }
+       } else {};
 
       } else {
        std::vector<uint16_t> amp_temp;
@@ -354,8 +436,6 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
      } 
 
      */
-
-/*Marco-*/
 
    }else {
      // We don't have 2 SimHits; just store cluster in the output DetSetVector

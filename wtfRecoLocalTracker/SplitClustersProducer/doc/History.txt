@@ -1,3 +1,7 @@
+10 Nov 2009  wtford -- V01-01-08
+SplitClustersProducer:  Add code for splitBy:  byTracks, using the
+fraction() method.  Also supports an unlimited number of clusters after
+splitting. 
 
 9 Nov 2009  wtford -- V01-01-07
 SplitClustersProducer:  Change logic to fill all elements of amp arrays,
