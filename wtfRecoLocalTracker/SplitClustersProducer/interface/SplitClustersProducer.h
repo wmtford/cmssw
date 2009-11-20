@@ -22,6 +22,7 @@
 
 #include "SimDataFormats/TrackingHit/interface/PSimHit.h"
 #include "SimDataFormats/TrackingHit/interface/PSimHitContainer.h"
+#include "CalibTracker/SiStripCommon/interface/SiStripDetInfoFileReader.h"
 
 
 
@@ -48,6 +49,11 @@ class SplitClustersProducer : public edm::EDProducer, public SplitClustersAlgos 
       void dumpSimTracks(TrackerHitAssociator*, const SiStripCluster*,
 			 const SiStripCluster*, const SiStripCluster*, const int);
       
+//
+// Dump info on DigSimLinks
+//
+      void dumpDigiSimLinks(uint32_t detID, const SiStripCluster* clust);
+
       // ----------member data ---------------------------
 
       TrackerHitAssociator* hitAssociator;
@@ -56,13 +62,14 @@ class SplitClustersProducer : public edm::EDProducer, public SplitClustersAlgos 
       std::vector<const SiStripCluster*> vPSiStripCluster;
       TRandom rnd;
 
-      /*Marco*/
       edm::Handle<CrossingFrame<PSimHit> > cf_simhit;
       std::vector<const CrossingFrame<PSimHit> *> cf_simhitvec;
       MixCollection<PSimHit>  TrackerHits;
       typedef std::vector<std::string> vstring;
       vstring trackerContainers;
       edm::Handle< edm::DetSetVector<StripDigiSimLink> >  stripdigisimlink;
+      edm::FileInPath FileInPath_;
+      SiStripDetInfoFileReader* reader;
 
 //
 // constants, enums and typedefs
@@ -81,11 +88,13 @@ class SplitClustersProducer : public edm::EDProducer, public SplitClustersAlgos 
 // constructors and destructor
 //
 SplitClustersProducer::SplitClustersProducer(const edm::ParameterSet& iConfig) :
+  FileInPath_("CalibTracker/SiStripCommon/data/SiStripDetInfo.dat"),
   splitByString(iConfig.getParameter<std::string>("splitBy"))
 {
   produces< edmNew::DetSetVector<SiStripCluster> >( "" );
   splitBy = SplitClustersAlgos::byHits;
   if (splitByString == "byTracks") splitBy = SplitClustersAlgos::byTracks;
+  reader = new SiStripDetInfoFileReader(FileInPath_.fullPath());
 }
 
 
