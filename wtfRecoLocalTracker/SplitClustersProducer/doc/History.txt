@@ -1,5 +1,10 @@
+20 Nov 2009  wtford -- V01-01-09
+SplitClustersProducer:  Cosmetic changes only (consistent indentation);
+printOut -> false.
+
 20 Nov 2009  wtford
-SplitClustersProducer:  Replace calls to hitAssociator with inline code
+SplitClustersProducer:  Add a function to dump information to a flat
+file for analysis.  Replace calls to hitAssociator with inline code
 (should be faster).
 
 10 Nov 2009  wtford -- V01-01-08
