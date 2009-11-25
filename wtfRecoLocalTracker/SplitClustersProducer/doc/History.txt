@@ -1,3 +1,8 @@
+25 Nov 2009  wtford -- V01-01-10
+SplitClustersProducer:  Back out "Replace calls to hitAssociator with
+inline code (should be faster)."  We now have reverted to V01-01-08 but
+with function dumpDigiSimLinks.
+
 20 Nov 2009  wtford -- V01-01-09
 SplitClustersProducer:  Cosmetic changes only (consistent indentation);
 printOut -> false.
