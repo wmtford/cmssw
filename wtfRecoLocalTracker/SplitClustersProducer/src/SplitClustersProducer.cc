@@ -14,7 +14,7 @@
 // Original Author:  Marco Cardaci
 //         Created:  Sun Sep 21 15:22:40 CEST 2008
 //         Updated:  Sep 2009 (release 3.1.X) wtford
-// $Id: SplitClustersProducer.cc,v 1.9 2009/11/11 05:41:52 wtford Exp $
+// $Id: SplitClustersProducer.cc,v 1.12 2009/11/25 21:58:15 wtford Exp $
 //
 //
 
@@ -183,7 +183,8 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
      hitAssociator->associateSimpleRecHitCluster(clust, associatedA);
      splittableClusterSize = associatedA.size();
    } else if (splitBy == SplitClustersAlgos::byTracks) {
-     hitAssociator->associateSimpleRecHitCluster(clust, associatedIdpr, associatedA);
+//      hitAssociator->associateSimpleRecHitCluster(clust, associatedIdpr, associatedA);
+     hitAssociator->associateSimpleRecHitCluster(clust, associatedIdpr);
      splittableClusterSize = associatedIdpr.size();
    } else cout << "SplitClustersProducer:  Invalid splitBy value" << endl;
 

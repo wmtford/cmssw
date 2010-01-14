@@ -1,3 +1,8 @@
+13 Jan 2010  wtford -- V01-01-11
+SplitClustersProducer:  Use the associateSimpleRecHitCluster signature
+that's in CMSSW_3_4_X, so we won't need to check out the later version,
+since the additional argument is no longer needed. 
+
 25 Nov 2009  wtford -- V01-01-10
 SplitClustersProducer:  Back out "Replace calls to hitAssociator with
 inline code (should be faster)."  We now have reverted to V01-01-08 but
