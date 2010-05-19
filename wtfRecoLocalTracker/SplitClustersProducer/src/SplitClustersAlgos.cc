@@ -6,6 +6,10 @@
 // this class header
 #include "wtfRecoLocalTracker/SplitClustersProducer/interface/SplitClustersAlgos.h"
 
+#include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
+#include "Geometry/TrackerGeometryBuilder/interface/StripGeomDetUnit.h"
+#include "Geometry/Records/interface/TrackerDigiGeometryRecord.h"
+
 #include "SimTracker/TrackerHitAssociation/interface/TrackerHitAssociator.h"
 
 using namespace std;
@@ -113,3 +117,52 @@ uint8_t SplitClustersAlgos::leftStripCount(const std::vector<uint8_t> amp,
   }
   return(stripCounter);
 }
+
+//
+// Initial vertex from pixel vertex list
+//
+void SplitClustersAlgos::iniVertex(const reco::VertexCollection pixelVertexColl, reco::Vertex::Point& vtx)
+{
+  //
+  // The first vertex is the primary (vertices sorted decreasing by sum[pT^2])
+  //
+  if (pixelVertexColl.size() > 0) {
+    reco::VertexCollection::const_iterator vi = pixelVertexColl.begin();
+    if (vi->isValid()) vtx = vi->position();
+  }
+}
+
+//
+// Initial vertex.z from pixel vertex list
+//
+void SplitClustersAlgos::iniZvertex(const reco::VertexCollection pixelVertexColl, float& zv, float& zverr)
+{
+  //
+  // The first vertex is the primary (vertices sorted decreasing by sum[pT^2])
+  //
+  if (pixelVertexColl.size() > 0) {
+    reco::VertexCollection::const_iterator vi = pixelVertexColl.begin();
+    if (vi->isValid()) {
+      zv = vi->z();
+      zverr = vi->zError();
+    }
+  }
+}
+
+//
+// Path length through sensor for straight track from pixel primary vertex
+//
+float SplitClustersAlgos::straightPathlength(reco::Vertex::Point pixelPrimaryVertex, const TrackerGeometry &tracker, uint32_t detID)
+{
+  DetId theDet(detID);
+  const StripGeomDetUnit* DetUnit = 0;
+  DetUnit = (const StripGeomDetUnit*) tracker.idToDetUnit(theDet);
+  float thickness = 0;
+  if (DetUnit != 0) thickness = DetUnit->surface().bounds().thickness();
+  LocalPoint locVtx = DetUnit->toLocal(GlobalPoint(pixelPrimaryVertex.X(), pixelPrimaryVertex.Y(), pixelPrimaryVertex.Z()));
+  float modPathLength = thickness;
+  float zt = locVtx.z();
+  if (zt != 0.0) modPathLength = fabs(thickness*locVtx.mag()/zt);
+  return(modPathLength);
+}
+

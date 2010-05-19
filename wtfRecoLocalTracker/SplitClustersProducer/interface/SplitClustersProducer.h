@@ -39,7 +39,7 @@ class SplitClustersProducer : public edm::EDProducer, public SplitClustersAlgos 
       ~SplitClustersProducer();
 
    private:
-      virtual void beginJob(const edm::EventSetup&) ;
+      virtual void beginJob() ;
       virtual void produce(edm::Event&, const edm::EventSetup&);
       virtual void endJob() ;
 
@@ -92,8 +92,10 @@ SplitClustersProducer::SplitClustersProducer(const edm::ParameterSet& iConfig) :
   splitByString(iConfig.getParameter<std::string>("splitBy"))
 {
   produces< edmNew::DetSetVector<SiStripCluster> >( "" );
-  splitBy = SplitClustersAlgos::byHits;
-  if (splitByString == "byTracks") splitBy = SplitClustersAlgos::byTracks;
+  if (splitByString == "byHits") splitBy = SplitClustersAlgos::byHits;
+  else if (splitByString == "byTracks") splitBy = SplitClustersAlgos::byTracks;
+  else if (splitByString == "noSplit") splitBy = SplitClustersAlgos::noSplit;
+  else splitBy = SplitClustersAlgos::unknown;
   reader = new SiStripDetInfoFileReader(FileInPath_.fullPath());
 }
 

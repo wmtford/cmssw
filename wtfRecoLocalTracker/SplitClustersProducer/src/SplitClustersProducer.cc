@@ -14,7 +14,7 @@
 // Original Author:  Marco Cardaci
 //         Created:  Sun Sep 21 15:22:40 CEST 2008
 //         Updated:  Sep 2009 (release 3.1.X) wtford
-// $Id: SplitClustersProducer.cc,v 1.12 2009/11/25 21:58:15 wtford Exp $
+// $Id: SplitClustersProducer.cc,v 1.13 2010/01/14 00:05:48 wtford Exp $
 //
 //
 
@@ -49,6 +49,10 @@
 #include "DataFormats/SiStripDetId/interface/TECDetId.h"
 #include "DataFormats/SiStripDetId/interface/TIDDetId.h"
 
+#include "DataFormats/BeamSpot/interface/BeamSpot.h"
+// #include "DataFormats/VertexReco/interface/Vertex.h"
+// #include "DataFormats/VertexReco/interface/VertexFwd.h"
+
 // For Pixel RecHits
 #include "DataFormats/TrackerRecHit2D/interface/SiPixelRecHitCollection.h"
 #include "DataFormats/TrackerRecHit2D/interface/SiPixelRecHit.h"
@@ -61,6 +65,7 @@
 #include "FWCore/Framework/interface/ESHandle.h"
 
 #include "DataFormats/GeometryVector/interface/LocalPoint.h"
+
 //needed for the geometry:
 #include "CommonTools/TrackerMap/interface/TrackerMap.h"
 #include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"  
@@ -71,7 +76,8 @@
 #include "Geometry/CommonTopologies/interface/StripTopology.h"
 #include "Geometry/CommonDetUnit/interface/GeomDetType.h" 
 
-#include "AnalysisDataFormats/SiStripClusterInfo/interface/SiStripClusterInfo.h"
+// #include "AnalysisDataFormats/SiStripClusterInfo/interface/SiStripClusterInfo.h"
+#include "RecoLocalTracker/SiStripClusterizer/interface/SiStripClusterInfo.h"
 #include "DataFormats/DetId/interface/DetId.h"
 
 #include "SimDataFormats/TrackerDigiSimLink/interface/StripDigiSimLink.h"
@@ -131,6 +137,30 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
   std::auto_ptr<MixCollection<PSimHit> > allTrackerHits(new MixCollection<PSimHit>(cf_simhitvec));
   TrackerHits = (*allTrackerHits);
 
+  // get the beam spot
+  edm::Handle<reco::BeamSpot> recoBeamSpotHandle;
+//   edm::InputTag bsSrc          = conf_.getParameter<edm::InputTag>("beamSpot");
+//   iEvent.getByLabel(bsSrc,recoBeamSpotHandle);
+  iEvent.getByLabel("hltOfflineBeamSpot",recoBeamSpotHandle);
+  const reco::BeamSpot& bs = *recoBeamSpotHandle;      
+
+  //
+  //  Primary vertex from pixels
+  //
+  // Some code from DPGAnalysis/SiStripTools/plugins/TrackerDpgAnalysis.cc (see also around line 804)
+  // load pixel vertices
+  // Pixel vertices are handled as primary vertices, but not linked to tracks.
+  edm::Handle<reco::VertexCollection>  pixelVertexCollectionHandle;
+//   iEvent.getByLabel(pixelVertexLabel_, pixelVertexCollectionHandle);
+  iEvent.getByLabel("pixelVertices", pixelVertexCollectionHandle);
+  const reco::VertexCollection pixelVertexColl = *(pixelVertexCollectionHandle.product());
+//   reco::Vertex::Point pixPriVtx(0, 0, 0);
+//   reco::Vertex::Point pixPriVtx(bs.x0(), bs.y0(), bs.z0());
+  reco::Vertex::Point pixPriVtx(bs.position());
+  iniVertex(pixelVertexColl, pixPriVtx);
+//   cout << "beamSpot " << bs.position() << "  priVtx " << pixPriVtx << endl;
+ 
+
  /////////////////////////
  // Cluster collections //
  /////////////////////////
@@ -154,6 +184,7 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
 
  edm::ESHandle<TrackerGeometry> tkgeom;
  iSetup.get<TrackerDigiGeometryRecord>().get( tkgeom );
+ const TrackerGeometry &tracker(*tkgeom);
 
  // LOOP on DetSetVector<SiStripCluster> to get cluster and fill the split ones
  int iclusCnt = 0;
@@ -165,6 +196,7 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
   iclusCnt += DSViter->size();
   
   uint32_t detID=DSViter->id();
+  float thePathLength = straightPathlength(pixPriVtx, tracker, detID);
   edm::DetSetVector<StripDigiSimLink>::const_iterator isearch = stripdigisimlink->find(detID);
 
   edmNew::DetSetVector<SiStripCluster>::FastFiller ssc(* splitSiStripClusters, DSViter->id());
@@ -176,36 +208,53 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
   for(edmNew::DetSet<SiStripCluster>::const_iterator ClusIter= DSViter->begin(); ClusIter!=DSViter->end();ClusIter++) {
    const SiStripCluster* clust = ClusIter;
 //    dumpDigiSimLinks(detID, clust);  continue;
+
+   std::vector<uint8_t> amp=clust->amplitudes();
+   int clusiz = amp.size();
+   float charge = 0;
+   bool saturates = false;
+   for (int i=0; i<clusiz; ++i) {
+     charge+=amp[i];
+     if (amp[i] == 254 || amp[i] == 255) saturates = true;
+   }
    associatedIdpr.clear();
    associatedA.clear();
+   hitAssociator->associateSimpleRecHitCluster(clust, associatedIdpr, associatedA);
+   vector<PSimHit>::const_iterator simhitsIter = associatedA.begin();
+   Local3DPoint entry = simhitsIter->entryPoint();
+   Local3DPoint exit =  simhitsIter->exitPoint();
+   Local3DVector segment = exit - entry;
+//    float normCharge = .0003*charge/max(float(1.e-6), segment.mag());
+   float normCharge = .0003*charge/max(float(1.e-6), thePathLength);
    size_t splittableClusterSize = 0;
    if (splitBy == SplitClustersAlgos::byHits) {
-     hitAssociator->associateSimpleRecHitCluster(clust, associatedA);
+//      hitAssociator->associateSimpleRecHitCluster(clust, associatedA);
      splittableClusterSize = associatedA.size();
    } else if (splitBy == SplitClustersAlgos::byTracks) {
-//      hitAssociator->associateSimpleRecHitCluster(clust, associatedIdpr, associatedA);
-     hitAssociator->associateSimpleRecHitCluster(clust, associatedIdpr);
+//      hitAssociator->associateSimpleRecHitCluster(clust, associatedIdpr);
      splittableClusterSize = associatedIdpr.size();
+   } else if (splitBy == SplitClustersAlgos::noSplit) {
+     splittableClusterSize = 0;
    } else cout << "SplitClustersProducer:  Invalid splitBy value" << endl;
 
-   /*
+   /*     
    SiStripClusterInfo* clusterInfo = new SiStripClusterInfo(*clust, iSetup);
-   const StripGeomDetUnit*_StripGeomDetUnit = dynamic_cast<const StripGeomDetUnit*>(tkgeom->idToDetUnit(DetId(detid)));
+   const StripGeomDetUnit*_StripGeomDetUnit = dynamic_cast<const StripGeomDetUnit*>(tkgeom->idToDetUnit(DetId(detID)));
    const StripTopology &topol=(StripTopology&)_StripGeomDetUnit->topology();
    MeasurementPoint mp(clusterInfo->baryStrip(),rnd.Uniform(-0.5,0.5));
    LocalPoint localPos = topol.localPosition(mp);
    float pitch = topol.localPitch(localPos);
+   cout << "local position " << localPos << "  pitch " << pitch << endl;
    delete clusterInfo;
    */
 
-
-
-      std::vector<uint8_t> amp=clust->amplitudes();
-
    // Fill the vector of SimHits associated with this Cluster
 
-//    if(splittableClusterSize == 2) {
-   if(splittableClusterSize == 2 && amp.size()>1) {
+//    if(splittableClusterSize == 2 && amp.size()>1) {
+//    if(splittableClusterSize == 2 && amp.size()>2 && normCharge > 1.5) {
+//    cout << "Tracks/cluster = " << splittableClusterSize << " saturates = " << saturates << " normCharge = " << normCharge << endl;
+   if(splittableClusterSize > 1 && amp.size()>2 && !saturates && normCharge > 1.5) {
+//      cout << "\tsplitting cluster" << endl;
 
      // We have a cluster with more than one strip matched to at least 2 SimHits (or 2 SimTracks)
 
@@ -249,7 +298,6 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
 //   if(stripCounter > 0 && stripCounter < amp.size()) {
 
 //    std::cout << "New Cluster" << std::endl;
-      int clusiz = amp.size();
       int first  = clust->firstStrip();
       int last   = first + clusiz;
       uint16_t rawAmpl = 0, currentAmpl = 0;
@@ -529,7 +577,7 @@ SplitClustersProducer::dumpDigiSimLinks(uint32_t detID, const SiStripCluster* cl
 
 // ------------ method called once each job just before starting event loop  ------------
 void 
-SplitClustersProducer::beginJob(const edm::EventSetup&)
+SplitClustersProducer::beginJob()
 {
 }
 

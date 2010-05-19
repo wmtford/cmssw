@@ -1,3 +1,15 @@
+19 May 2010  wtford -- V01-01-12
+Updates for CMSSW_3_5_X.
+SplitClustersAlgos:  Add functions iniVertex, iniZvertex,
+straightPathlength to set up the primary vertex from pixels, calculate
+the effective path length for a straight track from this vertex through
+the center of the sensor (origin of its local coordinates).
+SplitClustersProducer:  Add a "no split" option for testing.  Location
+was changed for SiStripClusterInfo.  Load the beam spot and pixel
+vertices from the event.  Calculate normalized cluster charge, either
+from MC truth or assuming a straight track from the pixel primary
+vertex.  Base decision to split a cluster on the normalized charge.
+
 13 Jan 2010  wtford -- V01-01-11
 SplitClustersProducer:  Use the associateSimpleRecHitCluster signature
 that's in CMSSW_3_4_X, so we won't need to check out the later version,
