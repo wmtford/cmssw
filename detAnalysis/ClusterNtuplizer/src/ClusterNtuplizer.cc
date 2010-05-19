@@ -13,7 +13,7 @@
 //
 // Original Author:  William T. Ford
 //         Created:  Sat Nov 21 18:02:42 MST 2009
-// $Id$
+// $Id: ClusterNtuplizer.cc,v 1.1 2010/03/11 22:14:40 wtford Exp $
 //
 //
 
@@ -30,6 +30,10 @@
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "FWCore/Framework/interface/ESHandle.h"
 
+#include "TH1F.h"
+#include "TH2F.h"
+#include "TROOT.h"
+
 #include "TObject.h"
 #include "TH1D.h"
 #include "TTree.h"
@@ -39,6 +43,9 @@
 #include "DataFormats/Common/interface/DetSet.h"
 #include "DataFormats/Common/interface/DetSetVector.h"
 #include "DataFormats/Common/interface/DetSetVectorNew.h"
+#include "DataFormats/BeamSpot/interface/BeamSpot.h"
+// #include "DataFormats/VertexReco/interface/Vertex.h"
+// #include "DataFormats/VertexReco/interface/VertexFwd.h"
 #include "DataFormats/SiStripCluster/interface/SiStripCluster.h"
 #include "DataFormats/DetId/interface/DetId.h"
 #include "DataFormats/SiStripDetId/interface/StripSubdetector.h"
@@ -57,11 +64,14 @@
 #include "Geometry/TrackerGeometryBuilder/interface/StripGeomDetUnit.h"
 #include "Geometry/Records/interface/TrackerDigiGeometryRecord.h"
 
+// For the splitter functions
+#include "wtfRecoLocalTracker/SplitClustersProducer/interface/SplitClustersAlgos.h"
+
 //
-// class decleration
+// class declaration
 //
 
-class ClusterNtuplizer : public edm::EDAnalyzer {
+class ClusterNtuplizer : public edm::EDAnalyzer, public SplitClustersAlgos {
 public:
   explicit ClusterNtuplizer(const edm::ParameterSet&);
   ~ClusterNtuplizer();
@@ -77,6 +87,9 @@ private:
       // ----------member data ---------------------------
 
 private:
+  edm::ParameterSet conf_;
+  edm::InputTag theClusterSourceLabel;
+
   std::vector<const SiStripCluster*> vPSiStripCluster;
 
   edm::Handle<CrossingFrame<PSimHit> > cf_simhit;
@@ -86,7 +99,9 @@ private:
   vstring trackerContainers;
   edm::Handle< edm::DetSetVector<StripDigiSimLink> >  stripdigisimlink;
 
-  TTree* clusTree_;  // tree filled for each selected TrackingParticle
+  int evCnt_;
+
+  TTree* clusTree_;  // tree filled for each cluster
   struct ClusterStruct{
     int subDet;
     float thickness;
@@ -102,12 +117,38 @@ private:
     float secondPmag;
     float firstPathLength;
     float secondPathLength;
+    float pathLstraight;
     float Eloss;
     int sat;
 
     void init();
     void print();
     } clusNtp_;
+
+  TTree* pvTree_;  // tree filled for each pixel vertex
+  struct pvStruct{
+    int isValid;
+    int isFake;
+    int Ntrks;
+    int nDoF;
+    float chisq;
+    float xV;
+    float yV;
+    float zV;
+    float xVsig;
+    float yVsig;
+    float zVsig;
+
+    void init();
+    void print();
+    } pvNtp_;
+
+  TH1F* hNpv;
+  TH2F* hzV_Iev;
+  TH2F* hNtrk_zVerrPri;
+  TH2F* hNtrk_zVerrSec;
+  TH1F* hZvPri;
+  TH1F* hZvSec;
 
 };
 
@@ -122,7 +163,9 @@ private:
 //
 // constructors and destructor
 //
-ClusterNtuplizer::ClusterNtuplizer(const edm::ParameterSet& iConfig)
+ClusterNtuplizer::ClusterNtuplizer(const edm::ParameterSet& iConfig): 
+ conf_(iConfig),
+ theClusterSourceLabel(iConfig.getParameter<edm::InputTag>( "clusterSourceLabel" ))
 
 {
    //now do what ever initialization is needed
@@ -151,9 +194,61 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   using namespace std;
 
   bool printOut = false;
+  if (printOut) cout << endl;
   trackerContainers.clear();
   cf_simhit.clear();
   cf_simhitvec.clear();
+
+  evCnt_++;
+
+  // get the beam spot
+  edm::Handle<reco::BeamSpot> recoBeamSpotHandle;
+//   edm::InputTag bsSrc          = conf_.getParameter<edm::InputTag>("beamSpot");
+//   iEvent.getByLabel(bsSrc, recoBeamSpotHandle);
+  iEvent.getByLabel("hltOfflineBeamSpot", recoBeamSpotHandle);
+  const reco::BeamSpot& bs = *recoBeamSpotHandle;      
+
+  edm::Handle<reco::VertexCollection>  pixelVertexCollectionHandle;
+//   iEvent.getByLabel(pixelVertexLabel_, pixelVertexCollectionHandle);
+  iEvent.getByLabel("pixelVertices", pixelVertexCollectionHandle);
+  const reco::VertexCollection pixelVertexColl = *(pixelVertexCollectionHandle.product());
+//   nPixelVertices_ = pixelVertexColl.size();
+//   cout << "No. of pixel vertices = " <<  pixelVertexColl.size() << endl;
+  hNpv->Fill(int(pixelVertexColl.size()));
+  reco::Vertex::Point pixPriVtx(bs.position());
+  iniVertex(pixelVertexColl, pixPriVtx);
+  float zv = 0, zverr = 0;
+  iniZvertex(pixelVertexColl, zv, zverr);
+  hZvPri->Fill(zv);
+//   pvNtp_.init();
+//   fillPvNtp();
+//  iterate over pixel vertices and fill the pixel vertex Ntuple
+  int iVtx = 0;
+  for(reco::VertexCollection::const_iterator vi = pixelVertexColl.begin(); 
+      vi != pixelVertexColl.end(); ++vi) {
+    if (printOut) cout << "  " << vi->tracksSize() << "  " << vi->z() << "+/-" << vi->zError() << endl;
+    pvNtp_.isValid = int(vi->isValid());
+    pvNtp_.isFake = int(vi->isFake());
+    pvNtp_.Ntrks = vi->tracksSize();
+    pvNtp_.nDoF = vi->ndof();
+    pvNtp_.chisq = vi->chi2();
+    pvNtp_.xV = vi->x();
+    pvNtp_.yV = vi->y();
+    pvNtp_.zV = vi->z();
+    pvNtp_.xVsig = vi->xError();
+    pvNtp_.yVsig = vi->yError();
+    pvNtp_.zVsig = vi->zError();
+    pvTree_->Fill();
+    hzV_Iev->Fill(vi->z(), evCnt_);
+    if (iVtx == 0) {
+      hNtrk_zVerrPri->Fill(vi->zError(), vi->tracksSize());
+    } else {
+      hNtrk_zVerrSec->Fill(vi->zError(), vi->tracksSize());
+      hZvSec->Fill(vi->z() - zv);
+    }
+    ++iVtx;
+  }
+  if (printOut) cout << " zv = " << zv << " +/- " << zverr << endl;
 
   //
   // Take by default all tracker SimHits
@@ -183,7 +278,8 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   // Cluster collections //
   /////////////////////////
   Handle< edmNew::DetSetVector<SiStripCluster> > dsv_SiStripCluster;
-  iEvent.getByLabel("siStripClusters", dsv_SiStripCluster);
+//   iEvent.getByLabel("siStripClusters", dsv_SiStripCluster);
+  iEvent.getByLabel(theClusterSourceLabel, dsv_SiStripCluster);
 
   iEvent.getByLabel("simSiStripDigis", stripdigisimlink);
 
@@ -207,6 +303,14 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     float thickness = 0;
     if (DetUnit != 0) thickness = DetUnit->surface().bounds().thickness();
     if (printOut) printDetInfo(detID, tracker);
+
+    LocalPoint locVtx = DetUnit->toLocal(GlobalPoint(pixPriVtx.X(), pixPriVtx.Y(), pixPriVtx.Z()));
+//     LocalPoint locVtx = DetUnit->toLocal(GlobalPoint(0., 0., zv));
+    float modPathLength = fabs(thickness*locVtx.mag()/locVtx.z());
+    if (printOut) {
+      cout << "Module at " << DetUnit->position() << endl;
+      cout << "PriVtx at " << locVtx << " path " << modPathLength << " " << DSViter->size() << " clusters" << endl;
+    }
 
     edm::DetSetVector<StripDigiSimLink>::const_iterator isearch = stripdigisimlink->find(detID);
 
@@ -247,9 +351,9 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	    float stripEloss = TrackerHits.getObject(currentCFPos).energyLoss();
 	    unsigned short thisHitProcess = TrackerHits.getObject(currentCFPos).processType();
 	    if (printOut)
-	      printf("%s%4d%s%5d%s%8d%s%8d%s%3d%s%8.4f\n", "CHANNEL = ", linkiter->channel(), " Ampl = ", rawAmpl,
-		     " TrackID = ", linkiter->SimTrackId(), " CFPos-1 = ", currentCFPos, " Process = ",
-		     thisHitProcess, " fraction = ", linkiter->fraction());
+// 	      printf("%s%4d%s%5d%s%8d%s%8d%s%3d%s%8.4f\n", "CHANNEL = ", linkiter->channel(), " Ampl = ", rawAmpl,
+// 		     " TrackID = ", linkiter->SimTrackId(), " CFPos-1 = ", currentCFPos, " Process = ",
+// 		     thisHitProcess, " fraction = ", linkiter->fraction());
 	    clusEloss += stripEloss;
 	    unsigned int thisTrackID = linkiter->SimTrackId();
             // Have we seen this track yet?
@@ -269,6 +373,7 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 		Local3DPoint exit = TrackerHits.getObject(currentCFPos).exitPoint();
 		Local3DVector segment = exit - entry;
 		hitPathLength.push_back(segment.mag());
+		if (printOut) cout << "                               segment " << segment.mag() << endl;
 // 	      }
 	    }
 	  }
@@ -277,7 +382,7 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
 // RecoTracker/DeDx/python/dedxDiscriminator_Prod_cfi.py, line 12 -- MeVperADCStrip = cms.double(3.61e-06*250)
 
-      // Fill the Ntuple
+      // Fill the cluster Ntuple
 //       clusNtp_.init();
 //       fillClusNtp();
       clusNtp_.subDet = subDet;
@@ -292,6 +397,7 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       clusNtp_.secondPmag = hitPmag.size() > 1 ? hitPmag[1] : 0;
       clusNtp_.firstPathLength = hitPathLength.size() > 0 ? hitPathLength[0]: 0;
       clusNtp_.secondPathLength = hitPathLength.size() > 1 ? hitPathLength[1]: 0;
+      clusNtp_.pathLstraight = modPathLength;
       clusNtp_.Ntp = trackID.size();
       clusNtp_.charge = charge;
       clusNtp_.Eloss = clusEloss;
@@ -309,8 +415,18 @@ ClusterNtuplizer::beginJob()
   int bufsize = 64000;
   edm::Service<TFileService> fs;
   clusTree_ = fs->make<TTree>("ClusterNtuple", "Cluster analyzer ntuple");
-  //  std::cout << "Making cluster branch:" << std::endl;
-  clusTree_->Branch("cluster", &clusNtp_, "subDet/I:thickness/F:width/I:NsimHits:firstProcess:secondProcess:firstPID:secondPID:Ntp:charge/F:firstPmag:secondPmag:firstPathLength:secondPathLength:Eloss:sat/I", bufsize);
+  clusTree_->Branch("cluster", &clusNtp_, "subDet/I:thickness/F:width/I:NsimHits:firstProcess:secondProcess:firstPID:secondPID:Ntp:charge/F:firstPmag:secondPmag:firstPathLength:secondPathLength:pathLstraight:Eloss:sat/I", bufsize);
+  pvTree_ = fs->make<TTree>("pVertexNtuple", "Pixel vertex ntuple");
+  pvTree_->Branch("pVertex", &pvNtp_, "isValid/I:isFake:Ntrks:nDoF:chisq/F:xV:yV:zV:xVsig:yVsig:zVsig", bufsize);
+
+  hNpv = fs->make<TH1F>("hNpv", "No. of pixel vertices", 40, 0, 40);
+  hzV_Iev = fs->make<TH2F>("hzV_Iev", "Zvertex vs event index", 20, -10, 10, 100, 0, 100);
+  hNtrk_zVerrPri = fs->make<TH2F>("hzVerr_NtrkPri", "Ntracks vs Zvertex error, primary", 50, 0, 0.025, 30, 0, 150);
+  hNtrk_zVerrSec = fs->make<TH2F>("hzVerr_NtrkSec", "Ntracks vs Zvertex error, secondary", 50, 0, 0.025, 30, 0, 150);
+  hZvPri = fs->make<TH1F>("hZvPri", "Zvertex, primary", 48, -15, 15);
+  hZvSec = fs->make<TH1F>("hZvSec", "Zvertex, secondary", 48, -15, 15);
+  evCnt_ = 0;
+
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
@@ -318,6 +434,7 @@ void
 ClusterNtuplizer::endJob() {
 }
 
+// ------------ Print out some tracker geometry info  ------------
 void 
 ClusterNtuplizer::printDetInfo(uint32_t detID, const TrackerGeometry& tracker) {
   using namespace std;
@@ -332,7 +449,12 @@ ClusterNtuplizer::printDetInfo(uint32_t detID, const TrackerGeometry& tracker) {
 //   enum SubDetector { UNKNOWN=0, TIB=3, TID=4, TOB=5, TEC=6 }
   if (subDet == int(StripSubdetector::TIB)) {
     TIBDetId tibId(detID);
-    cout << ", TIB layer " << tibId.layer() << " module " << tibId.module();
+    cout << ", TIB (layer, module) (" << tibId.layer() << ", " << tibId.module()
+	 << ") string [" << tibId.string()[0] << ", " << tibId.string()[1] << ",  " << tibId.string()[2] << "]";
+    if (tibId.isRPhi()) cout << " RPhi ";
+    else if (tibId.isStereo()) cout << " Stereo ";
+    else cout << " Double-sided ";
+//     cout << ", TIB layer " << tibId.layer() << " module " << tibId.module() << " order " << tibId.order() << " side " << tibId.side();
   } else if (subDet == int(StripSubdetector::TID)) {
     TIDDetId tidId(detID);
     cout << ", TID side " << tidId.side() << " wheel " << tidId.wheel() << " ring " << tidId.ring()
