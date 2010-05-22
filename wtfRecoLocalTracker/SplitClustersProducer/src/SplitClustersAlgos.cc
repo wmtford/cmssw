@@ -6,9 +6,11 @@
 // this class header
 #include "wtfRecoLocalTracker/SplitClustersProducer/interface/SplitClustersAlgos.h"
 
+#include "DataFormats/SiStripCluster/interface/SiStripCluster.h"
 #include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
 #include "Geometry/TrackerGeometryBuilder/interface/StripGeomDetUnit.h"
 #include "Geometry/Records/interface/TrackerDigiGeometryRecord.h"
+#include "Geometry/CommonTopologies/interface/StripTopology.h"
 
 #include "SimTracker/TrackerHitAssociation/interface/TrackerHitAssociator.h"
 
@@ -150,7 +152,7 @@ void SplitClustersAlgos::iniZvertex(const reco::VertexCollection pixelVertexColl
 }
 
 //
-// Path length through sensor for straight track from pixel primary vertex
+// Path length through sensor origin for straight track from pixel primary vertex
 //
 float SplitClustersAlgos::straightPathlength(reco::Vertex::Point pixelPrimaryVertex, const TrackerGeometry &tracker, uint32_t detID)
 {
@@ -163,6 +165,29 @@ float SplitClustersAlgos::straightPathlength(reco::Vertex::Point pixelPrimaryVer
   float modPathLength = thickness;
   float zt = locVtx.z();
   if (zt != 0.0) modPathLength = fabs(thickness*locVtx.mag()/zt);
+  return(modPathLength);
+}
+
+//
+// Path length through cluster for straight track from pixel primary vertex
+//
+float SplitClustersAlgos::straightPathlength(reco::Vertex::Point pixelPrimaryVertex,
+					     const TrackerGeometry &tracker,
+					     uint32_t detID, const SiStripCluster* clust)
+{
+  DetId theDet(detID);
+  const StripGeomDetUnit* DetUnit = 0;
+  DetUnit = (const StripGeomDetUnit*) tracker.idToDetUnit(theDet);
+  float thickness = 0;
+  if (DetUnit != 0) thickness = DetUnit->surface().bounds().thickness();
+  const StripTopology &topol = (StripTopology&) DetUnit->topology();
+  MeasurementPoint mp(clust->barycenter(), 0);
+  LocalPoint localPos = topol.localPosition(mp);
+  LocalPoint locVtx = DetUnit->toLocal(GlobalPoint(pixelPrimaryVertex.X(), pixelPrimaryVertex.Y(), pixelPrimaryVertex.Z()));
+  LocalVector vtx_from_cluster(locVtx.x() - localPos.x(), locVtx.y(), locVtx.z());
+  float modPathLength = thickness;
+  float zt = vtx_from_cluster.z();
+  if (zt != 0.0) modPathLength = fabs(thickness*vtx_from_cluster.mag()/zt);
   return(modPathLength);
 }
 

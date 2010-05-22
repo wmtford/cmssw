@@ -5,8 +5,8 @@
  *  Implementation base for cluster splitting producer
  *  Provides functions that can be shared with analysis classes.
  *
- *  $Date: 2009/10/24 21:31:56 $
- *  $Revision: 1.2 $
+ *  $Date: 2010/05/19 21:30:49 $
+ *  $Revision: 1.3 $
  *  \author wtford
  */
 
@@ -17,6 +17,7 @@
 #include "SimDataFormats/TrackingHit/interface/PSimHit.h"
 
 class TrackerGeometry;
+class SiStripCluster;
 
 class SplitClustersAlgos {
   public:
@@ -55,10 +56,17 @@ class SplitClustersAlgos {
   void iniZvertex(const reco::VertexCollection pixelVertexColl, float& zv, float& zverr);
 
   //
-  // Path length through sensor for straight track from pixel primary vertex
+  // Path length through sensor origin for straight track from pixel primary vertex
   //
   float straightPathlength(reco::Vertex::Point pixelPrimaryVertex, const TrackerGeometry &tracker, uint32_t detID);
 
+
+  //
+  // Path length through cluster for straight track from pixel primary vertex
+  //
+  float straightPathlength(reco::Vertex::Point pixelPrimaryVertex,
+			   const TrackerGeometry &tracker,
+			   uint32_t detID, const SiStripCluster* clust);
 };
 
 #endif

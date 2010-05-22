@@ -1,10 +1,16 @@
+22 May 2010  wtford -- V01-01-14
+SplitClustersAlgos:  Add overload of straightPathLength to take cluster
+as argument and account for the measured local x.  (This only changes
+the path length by ~1%, and has to be called within the cluster loop, so
+may not be that useful.)
+
 19 May 2010  wtford -- V01-01-13
 SplitClustersProducer:  Cosmetic changes only (consistent indentation).
 
 19 May 2010  wtford -- V01-01-12
 Updates for CMSSW_3_5_X.
 SplitClustersAlgos:  Add functions iniVertex, iniZvertex,
-straightPathlength to set up the primary vertex from pixels, calculate
+straightPathLength to set up the primary vertex from pixels, calculate
 the effective path length for a straight track from this vertex through
 the center of the sensor (origin of its local coordinates).
 SplitClustersProducer:  Add a "no split" option for testing.  Location
