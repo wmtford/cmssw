@@ -17,7 +17,7 @@
 #include "SimDataFormats/TrackingHit/interface/PSimHit.h"
 #include "SimTracker/TrackerHitAssociation/interface/TrackerHitAssociator.h"
 
-#include "RecoLocalTracker/SplitClustersProducer/interface/SplitClustersAlgos.h"
+#include "wtfRecoLocalTracker/SplitClustersProducer/interface/SplitClustersAlgos.h"
 
 
 #include "SimDataFormats/TrackingHit/interface/PSimHit.h"

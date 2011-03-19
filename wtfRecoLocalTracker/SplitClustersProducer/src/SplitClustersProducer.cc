@@ -526,32 +526,32 @@ SplitClustersProducer::dumpSimTracks(TrackerHitAssociator* hitAssociator, const 
     std::vector<PSimHit> simHitOrig;  simHitOrig.clear();
     std::vector<PSimHit> simHitNew1;  simHitNew1.clear();
     std::vector<PSimHit> simHitNew2;  simHitNew2.clear();
-    hitAssociator->associateSimpleRecHitCluster(origCluster, simHitOrig);  std::cout << "-------------" << std::endl;
-    hitAssociator->associateSimpleRecHitCluster(newCluster1, simHitNew1);  std::cout << "............." << std::endl;
+    hitAssociator->associateSimpleRecHitCluster(origCluster, simHitOrig);  cout << "-------------" << endl;
+    hitAssociator->associateSimpleRecHitCluster(newCluster1, simHitNew1);  cout << "............." << endl;
     hitAssociator->associateSimpleRecHitCluster(newCluster2, simHitNew2);
-    std::cout << "No. of simhits (orig, 1, 2): ";
-    std::cout << simHitOrig.size() << ", " << simHitNew1.size() << ", " << simHitNew2.size();
+    cout << "No. of simhits (orig, 1, 2): ";
+    cout << simHitOrig.size() << ", " << simHitNew1.size() << ", " << simHitNew2.size();
   } else {  // byTracks
     std::vector<SimHitIdpr> simTkIdOrig;  simTkIdOrig.clear();
     std::vector<SimHitIdpr> simTkIdNew1;  simTkIdNew1.clear();
     std::vector<SimHitIdpr> simTkIdNew2;  simTkIdNew2.clear();
-    hitAssociator->associateSimpleRecHitCluster(origCluster, simTkIdOrig);  std::cout << "-------------" << std::endl;
-    hitAssociator->associateSimpleRecHitCluster(newCluster1, simTkIdNew1);  std::cout << "............." << std::endl;
+    hitAssociator->associateSimpleRecHitCluster(origCluster, simTkIdOrig);  cout << "-------------" << endl;
+    hitAssociator->associateSimpleRecHitCluster(newCluster1, simTkIdNew1);  cout << "............." << endl;
     hitAssociator->associateSimpleRecHitCluster(newCluster2, simTkIdNew2);
-    std::cout << "No. of simhits (orig, 1, 2): ";
-    std::cout << simTkIdOrig.size() << ", " << simTkIdNew1.size() << ", " << simTkIdNew2.size();
+    cout << "No. of simhits (orig, 1, 2): ";
+    cout << simTkIdOrig.size() << ", " << simTkIdNew1.size() << ", " << simTkIdNew2.size();
   }
 //   cout << ", widths:  " << amp0.size()
 //        << ", " << amp1.size()
 //        << ", " << amp2.size();
 //   cout << ", first: " << origCluster->firstStrip();  cout << ", amps:" ;
-  std::cout << ", first, width:  " << origCluster->firstStrip() << ", " << amp0.size() << " || "
+  cout << ", first, width:  " << origCluster->firstStrip() << ", " << amp0.size() << " || "
        << newCluster1->firstStrip() << ", " << amp1.size() << " | "
-	    << newCluster2->firstStrip() << ", " << amp2.size() << std::endl << "  Amps:";
-  for (size_t i=0; i<amp0.size(); ++i) std::cout << " " << int(amp0[i]);  std::cout << " ||";
-  for (size_t i=0; i<amp1.size(); ++i) std::cout << " " << int(amp1[i]);  std::cout << " |";
-  for (size_t i=0; i<amp2.size(); ++i) std::cout << " " << int(amp2[i]);  std::cout << std::endl;
-  std::cout << "dumpSimTracks end ================================================================" << std::endl;
+       << newCluster2->firstStrip() << ", " << amp2.size() << endl << "  Amps:";
+  for (size_t i=0; i<amp0.size(); ++i) cout << " " << int(amp0[i]);  cout << " ||";
+  for (size_t i=0; i<amp1.size(); ++i) cout << " " << int(amp1[i]);  cout << " |";
+  for (size_t i=0; i<amp2.size(); ++i) cout << " " << int(amp2[i]);  cout << endl;
+  cout << "dumpSimTracks end ================================================================" << endl;
 }
 
 // Dump info on DigSimLinks
@@ -590,28 +590,5 @@ void
 SplitClustersProducer::endJob() {
 }
 
-
-SplitClustersProducer::SplitClustersProducer(const edm::ParameterSet& iConfig) :
-  FileInPath_("CalibTracker/SiStripCommon/data/SiStripDetInfo.dat"),
-  splitByString(iConfig.getParameter<std::string>("splitBy"))
-{
-  produces< edmNew::DetSetVector<SiStripCluster> >( "" );
-  if (splitByString == "byHits") splitBy = SplitClustersAlgos::byHits;
-  else if (splitByString == "byTracks") splitBy = SplitClustersAlgos::byTracks;
-  else if (splitByString == "noSplit") splitBy = SplitClustersAlgos::noSplit;
-  else splitBy = SplitClustersAlgos::unknown;
-  reader = new SiStripDetInfoFileReader(FileInPath_.fullPath());
-}
-
-
-
-SplitClustersProducer::~SplitClustersProducer()
-{
-    // do anything here that needs to be done at desctruction time
-   // (e.g. close files, deallocate resources etc.)
-
-}
-
-
 //define this as a plug-in
-//DEFINE_FWK_MODULE(SplitClustersProducer);
+DEFINE_FWK_MODULE(SplitClustersProducer);
