@@ -17,7 +17,7 @@
 #include "SimDataFormats/TrackingHit/interface/PSimHit.h"
 #include "SimTracker/TrackerHitAssociation/interface/TrackerHitAssociator.h"
 
-#include "wtfRecoLocalTracker/SplitClustersProducer/interface/SplitClustersAlgos.h"
+#include "RecoLocalTracker/SplitClustersProducer/interface/SplitClustersAlgos.h"
 
 
 #include "SimDataFormats/TrackingHit/interface/PSimHit.h"
@@ -87,5 +87,25 @@ class SplitClustersProducer : public edm::EDProducer, public SplitClustersAlgos 
 //
 // constructors and destructor
 //
+SplitClustersProducer::SplitClustersProducer(const edm::ParameterSet& iConfig) :
+  FileInPath_("CalibTracker/SiStripCommon/data/SiStripDetInfo.dat"),
+  splitByString(iConfig.getParameter<std::string>("splitBy"))
+{
+  produces< edmNew::DetSetVector<SiStripCluster> >( "" );
+  if (splitByString == "byHits") splitBy = SplitClustersAlgos::byHits;
+  else if (splitByString == "byTracks") splitBy = SplitClustersAlgos::byTracks;
+  else if (splitByString == "noSplit") splitBy = SplitClustersAlgos::noSplit;
+  else splitBy = SplitClustersAlgos::unknown;
+  reader = new SiStripDetInfoFileReader(FileInPath_.fullPath());
+}
+
+
+SplitClustersProducer::~SplitClustersProducer()
+{
+ 
+   // do anything here that needs to be done at desctruction time
+   // (e.g. close files, deallocate resources etc.)
+
+}
 
 #endif
