@@ -1,3 +1,7 @@
+1 Jun 2010  wtford -- V01-01-02
+Update for CMSSW_4_2_X; Buildfile -> new Buildfile.xml.
+Add variables to the ntuple.
+
 19 May 2010  wtford -- V01-01-01
 Update for CMSSW_3_5_X
 ClusterNtuplizer:  Add a tree and histograms for pixel vertices.

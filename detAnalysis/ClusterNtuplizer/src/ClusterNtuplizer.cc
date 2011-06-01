@@ -13,10 +13,12 @@
 //
 // Original Author:  William T. Ford
 //         Created:  Sat Nov 21 18:02:42 MST 2009
-// $Id: ClusterNtuplizer.cc,v 1.1 2010/03/11 22:14:40 wtford Exp $
+// $Id: ClusterNtuplizer.cc,v 1.2 2010/05/19 22:03:38 wtford Exp $
 //
 //
 
+// this class header
+// #include "detAnalysis/ClusterNtuplizer/interface/ClusterNtuplizer.h"
 
 // system include files
 #include <memory>
@@ -37,9 +39,9 @@
 #include "TObject.h"
 #include "TH1D.h"
 #include "TTree.h"
-#include "PhysicsTools/UtilAlgos/interface/TFileService.h"
+#include "CommonTools/UtilAlgos/interface/TFileService.h"
 
-//Data Formats
+// Data Formats
 #include "DataFormats/Common/interface/DetSet.h"
 #include "DataFormats/Common/interface/DetSetVector.h"
 #include "DataFormats/Common/interface/DetSetVectorNew.h"
@@ -76,7 +78,6 @@ public:
   explicit ClusterNtuplizer(const edm::ParameterSet&);
   ~ClusterNtuplizer();
 
-
 private:
   virtual void beginJob();
   virtual void analyze(const edm::Event&, const edm::EventSetup&);
@@ -109,17 +110,34 @@ private:
     int NsimHits;
     int firstProcess;
     int secondProcess;
+    int thirdProcess;
+    int fourthProcess;
     int firstPID;
     int secondPID;
+    int thirdPID;
+    int fourthPID;
     int Ntp;
+    float firstTkChg;
+    float secondTkChg;
+    float thirdTkChg;
+    float fourthTkChg;
     float charge;
     float firstPmag;
     float secondPmag;
+    float thirdPmag;
+    float fourthPmag;
     float firstPathLength;
     float secondPathLength;
+    float thirdPathLength;
+    float fourthPathLength;
     float pathLstraight;
+    float allHtPathLength;
     float Eloss;
     int sat;
+    int tkFlip;
+    int ovlap;
+    int layer;
+    int stereo;
 
     void init();
     void print();
@@ -176,7 +194,7 @@ ClusterNtuplizer::ClusterNtuplizer(const edm::ParameterSet& iConfig):
 ClusterNtuplizer::~ClusterNtuplizer()
 {
  
-   // do anything here that needs to be done at desctruction time
+   // do anything here that needs to be done at destruction time
    // (e.g. close files, deallocate resources etc.)
 
 }
@@ -193,8 +211,8 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   using namespace edm;
   using namespace std;
 
-  bool printOut = false;
-  if (printOut) cout << endl;
+  int printOut = 0;
+  if (printOut > 0) std::cout << std::endl;
   trackerContainers.clear();
   cf_simhit.clear();
   cf_simhitvec.clear();
@@ -213,7 +231,7 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   iEvent.getByLabel("pixelVertices", pixelVertexCollectionHandle);
   const reco::VertexCollection pixelVertexColl = *(pixelVertexCollectionHandle.product());
 //   nPixelVertices_ = pixelVertexColl.size();
-//   cout << "No. of pixel vertices = " <<  pixelVertexColl.size() << endl;
+//   std::cout << "No. of pixel vertices = " <<  pixelVertexColl.size() << std::endl;
   hNpv->Fill(int(pixelVertexColl.size()));
   reco::Vertex::Point pixPriVtx(bs.position());
   iniVertex(pixelVertexColl, pixPriVtx);
@@ -226,7 +244,7 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   int iVtx = 0;
   for(reco::VertexCollection::const_iterator vi = pixelVertexColl.begin(); 
       vi != pixelVertexColl.end(); ++vi) {
-    if (printOut) cout << "  " << vi->tracksSize() << "  " << vi->z() << "+/-" << vi->zError() << endl;
+    if (printOut > 0) std::cout << "  " << vi->tracksSize() << "  " << vi->z() << "+/-" << vi->zError() << std::endl;
     pvNtp_.isValid = int(vi->isValid());
     pvNtp_.isFake = int(vi->isFake());
     pvNtp_.Ntrks = vi->tracksSize();
@@ -248,7 +266,7 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     }
     ++iVtx;
   }
-  if (printOut) cout << " zv = " << zv << " +/- " << zverr << endl;
+  if (printOut > 0) std::cout << "  zv = " << zv << " +/- " << zverr << std::endl;
 
   //
   // Take by default all tracker SimHits
@@ -286,7 +304,7 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   edm::ESHandle<TrackerGeometry> tkgeom;
   iSetup.get<TrackerDigiGeometryRecord>().get( tkgeom );
   if (!tkgeom.isValid()) {
-    cout << "Unable to find TrackerDigiGeometryRecord in event!";
+    std::cout << "Unable to find TrackerDigiGeometryRecord in event!";
     return;
   }
   const TrackerGeometry &tracker(*tkgeom);
@@ -302,14 +320,21 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     DetUnit = (const StripGeomDetUnit*) tracker.idToDetUnit(theDet);
     float thickness = 0;
     if (DetUnit != 0) thickness = DetUnit->surface().bounds().thickness();
-    if (printOut) printDetInfo(detID, tracker);
+    int layer = 0;
+    int stereo = 0;
+    if (subDet == int(StripSubdetector::TIB)) {
+      TIBDetId tibId(detID);
+      layer = tibId.layer();
+      if (tibId.isStereo()) stereo = 1;
+    }
+    if (printOut > 0) printDetInfo(detID, tracker);
 
     LocalPoint locVtx = DetUnit->toLocal(GlobalPoint(pixPriVtx.X(), pixPriVtx.Y(), pixPriVtx.Z()));
 //     LocalPoint locVtx = DetUnit->toLocal(GlobalPoint(0., 0., zv));
     float modPathLength = fabs(thickness*locVtx.mag()/locVtx.z());
-    if (printOut) {
-      cout << "Module at " << DetUnit->position() << endl;
-      cout << "PriVtx at " << locVtx << " path " << modPathLength << " " << DSViter->size() << " clusters" << endl;
+    if (printOut > 0) {
+      std::cout << "  Module at " << DetUnit->position() << std::endl;
+      std::cout << "  PriVtx at " << locVtx << " path " << modPathLength << " " << DSViter->size() << " clusters" << std::endl;
     }
 
     edm::DetSetVector<StripDigiSimLink>::const_iterator isearch = stripdigisimlink->find(detID);
@@ -329,56 +354,75 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	charge+=amp[i];
 	if (amp[i] == 254 || amp[i] == 255) saturates = true;
       }
+      if (printOut > 0) {
+	std::cout << "Custer width = " << clusiz << "  charge = " << charge;
+	if (saturates) std::cout << "  (saturates)";
+	std::cout << endl;
+      }
       float clusEloss = 0;
+      int tkFlip = 0;
+      int ovlap = 0;
       std::vector<unsigned int> trackID;
       std::vector<unsigned int> CFpos;
       std::vector<unsigned int> CFcache;
       std::vector<unsigned int> hitProcess;
       std::vector<int> hitPID;
+      std::vector<float> trackCharge;
       std::vector<float> hitPmag;
       std::vector<float> hitPathLength;
 //       std::vector<float> hitEloss;
       if(isearch == stripdigisimlink->end()) {
-	if (printOut) cout << "No digisimlinks for this module" << std::endl;
+	if (printOut > 0) std::cout << "No digisimlinks for this module" << std::endl;
       } else {
+	int prevIdx = -1;
 	edm::DetSet<StripDigiSimLink> link_detset = (*isearch);
         for(edm::DetSet<StripDigiSimLink>::const_iterator linkiter = link_detset.data.begin();
 	    linkiter != link_detset.data.end(); linkiter++){
+	  int stripIdx;
           if( (int)(linkiter->channel()) >= first  && (int)(linkiter->channel()) < last ){
 	    unsigned int currentCFPos = linkiter->CFposition()-1;
-	    int stripIdx = (int)linkiter->channel()-first;
+	    stripIdx = (int)linkiter->channel()-first;
 	    uint16_t rawAmpl = (uint16_t)(amp[stripIdx]);
 	    float stripEloss = TrackerHits.getObject(currentCFPos).energyLoss();
 	    unsigned short thisHitProcess = TrackerHits.getObject(currentCFPos).processType();
-	    if (printOut)
-// 	      printf("%s%4d%s%5d%s%8d%s%8d%s%3d%s%8.4f\n", "CHANNEL = ", linkiter->channel(), " Ampl = ", rawAmpl,
-// 		     " TrackID = ", linkiter->SimTrackId(), " CFPos-1 = ", currentCFPos, " Process = ",
-// 		     thisHitProcess, " fraction = ", linkiter->fraction());
+	    if (printOut > 1)
+	      printf("  %s%4d%s%5d%s%8d%s%8d%s%3d%s%8.4f\n", "CHANNEL = ", linkiter->channel(), " Ampl = ", rawAmpl,
+		     " TrackID = ", linkiter->SimTrackId(), " CFPos-1 = ", currentCFPos, " Process = ",
+		     thisHitProcess, " fraction = ", linkiter->fraction());
 	    clusEloss += stripEloss;
 	    unsigned int thisTrackID = linkiter->SimTrackId();
+	    // Does at least one strip have >1 track?
+	    if (stripIdx == prevIdx) ovlap = 1;
             // Have we seen this track yet?
 	    bool newTrack = true;
 	    if (std::find(trackID.begin(), trackID.end(), thisTrackID) != trackID.end()) newTrack = false;
-	    if (newTrack) trackID.push_back(thisTrackID);
+	    if (newTrack) {
+	      trackID.push_back(thisTrackID);
+	      trackCharge.push_back(linkiter->fraction()*rawAmpl);
+	    } else {
+	      for (unsigned int i=0; i<trackID.size(); ++i)
+		if (trackID[i] == thisTrackID)
+		  trackCharge[i] += linkiter->fraction()*rawAmpl;
+	    }
 	    bool newHit = true;
 	    if (std::find(CFcache.begin(), CFcache.end(), currentCFPos) != CFcache.end()) newHit = false;
 	    if (newHit) {
 	      CFcache.push_back(currentCFPos);
-// 	      if (TrackerHits.getObject(currentCFPos).particleType() != 22) {  // exclude photons
-		CFpos.push_back(currentCFPos);
-		hitProcess.push_back(thisHitProcess);
-		hitPID.push_back(TrackerHits.getObject(currentCFPos).particleType());
-		hitPmag.push_back(TrackerHits.getObject(currentCFPos).pabs());
-		Local3DPoint entry = TrackerHits.getObject(currentCFPos).entryPoint();
-		Local3DPoint exit = TrackerHits.getObject(currentCFPos).exitPoint();
-		Local3DVector segment = exit - entry;
-		hitPathLength.push_back(segment.mag());
-		if (printOut) cout << "                               segment " << segment.mag() << endl;
-// 	      }
+	      CFpos.push_back(currentCFPos);
+	      hitProcess.push_back(thisHitProcess);
+	      hitPID.push_back(TrackerHits.getObject(currentCFPos).particleType());
+	      hitPmag.push_back(TrackerHits.getObject(currentCFPos).pabs());
+	      Local3DPoint entry = TrackerHits.getObject(currentCFPos).entryPoint();
+	      Local3DPoint exit = TrackerHits.getObject(currentCFPos).exitPoint();
+	      Local3DVector segment = exit - entry;
+	      hitPathLength.push_back(segment.mag());
+	      if (printOut > 2) std::cout << "                                       segment " << segment.mag() << std::endl;
 	    }
-	  }
-	}
-      }
+	    prevIdx = stripIdx;
+	  }  // DigiSimLink belongs to this cluster
+	}  // Traverse DigiSimLinks
+	if (ovlap && trackID[1] < trackID[0]) tkFlip = 1;
+      }  // DigiSimLinks present for this cluster
 
 // RecoTracker/DeDx/python/dedxDiscriminator_Prod_cfi.py, line 12 -- MeVperADCStrip = cms.double(3.61e-06*250)
 
@@ -391,17 +435,40 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       clusNtp_.NsimHits = CFpos.size();
       clusNtp_.firstProcess = hitProcess.size() > 0 ? hitProcess[0] : 0;
       clusNtp_.secondProcess = hitProcess.size() > 1 ? hitProcess[1] : 0;
+      clusNtp_.thirdProcess = hitProcess.size() > 2 ? hitProcess[2] : 0;
+      clusNtp_.fourthProcess = hitProcess.size() > 3 ? hitProcess[3] : 0;
       clusNtp_.firstPID = hitPID.size() > 0 ? hitPID[0] : 0;
       clusNtp_.secondPID = hitPID.size() > 1 ? hitPID[1] : 0;
+      clusNtp_.thirdPID = hitPID.size() > 2 ? hitPID[2] : 0;
+      clusNtp_.fourthPID = hitPID.size() > 3 ? hitPID[3] : 0;
       clusNtp_.firstPmag = hitPmag.size() > 0 ? hitPmag[0] : 0;
       clusNtp_.secondPmag = hitPmag.size() > 1 ? hitPmag[1] : 0;
+      clusNtp_.thirdPmag = hitPmag.size() > 2 ? hitPmag[2] : 0;
+      clusNtp_.fourthPmag = hitPmag.size() > 3 ? hitPmag[3] : 0;
       clusNtp_.firstPathLength = hitPathLength.size() > 0 ? hitPathLength[0]: 0;
       clusNtp_.secondPathLength = hitPathLength.size() > 1 ? hitPathLength[1]: 0;
+      clusNtp_.thirdPathLength = hitPathLength.size() > 2 ? hitPathLength[2]: 0;
+      clusNtp_.fourthPathLength = hitPathLength.size() > 3 ? hitPathLength[3]: 0;
       clusNtp_.pathLstraight = modPathLength;
+      float allHtPathLength = 0;
+      for (unsigned int ih=0; ih<hitPathLength.size(); ++ih)
+	allHtPathLength += hitPathLength[ih];
+      clusNtp_.allHtPathLength = allHtPathLength;
       clusNtp_.Ntp = trackID.size();
+      if (printOut > 0 && trackCharge.size() == 2)
+	cout << "  charge 1st, 2nd, asymmetry = " << trackCharge[0] << "  " << trackCharge[1] << "  "
+	     << (trackCharge[0]-trackCharge[1]) / (trackCharge[0]+trackCharge[1]) << "  " << tkFlip << endl;
+      clusNtp_.firstTkChg = trackCharge.size() > 0 ? trackCharge[0] : 0;
+      clusNtp_.secondTkChg = trackCharge.size() > 1 ? trackCharge[1] : 0;
+      clusNtp_.thirdTkChg = trackCharge.size() > 2 ? trackCharge[2] : 0;
+      clusNtp_.fourthTkChg = trackCharge.size() > 3 ? trackCharge[3] : 0;
       clusNtp_.charge = charge;
       clusNtp_.Eloss = clusEloss;
       if (saturates) clusNtp_.sat = 1;  else clusNtp_.sat = 0;
+      clusNtp_.tkFlip = tkFlip;
+      clusNtp_.ovlap = ovlap;
+      clusNtp_.layer = layer;
+      clusNtp_.stereo = stereo;
       clusTree_->Fill();
     }  // traverse clusters in subdetector
   }  // traverse subdetectors
@@ -415,7 +482,7 @@ ClusterNtuplizer::beginJob()
   int bufsize = 64000;
   edm::Service<TFileService> fs;
   clusTree_ = fs->make<TTree>("ClusterNtuple", "Cluster analyzer ntuple");
-  clusTree_->Branch("cluster", &clusNtp_, "subDet/I:thickness/F:width/I:NsimHits:firstProcess:secondProcess:firstPID:secondPID:Ntp:charge/F:firstPmag:secondPmag:firstPathLength:secondPathLength:pathLstraight:Eloss:sat/I", bufsize);
+  clusTree_->Branch("cluster", &clusNtp_, "subDet/I:thickness/F:width/I:NsimHits:firstProcess:secondProcess:thirdProcess:fourthProcess:firstPID:secondPID:thirdPID:fourthPID:Ntp:firstTkChg/F:secondTkChg:thirdTkChg/F:fourthTkChg:charge:firstPmag:secondPmag:thirdPmag:fourthPmag:firstPathLength:secondPathLength:thirdPathLength:fourthPathLength:pathLstraight:allHtPathLength:Eloss:sat/I:tkFlip:ovlap:layer:stereo", bufsize);
   pvTree_ = fs->make<TTree>("pVertexNtuple", "Pixel vertex ntuple");
   pvTree_->Branch("pVertex", &pvNtp_, "isValid/I:isFake:Ntrks:nDoF:chisq/F:xV:yV:zV:xVsig:yVsig:zVsig", bufsize);
 
@@ -445,30 +512,30 @@ ClusterNtuplizer::printDetInfo(uint32_t detID, const TrackerGeometry& tracker) {
   DetUnit = (const StripGeomDetUnit*) tracker.idToDetUnit(theDet);
   float thickness = 0;
   if (DetUnit != 0) thickness = DetUnit->surface().bounds().thickness();
-  cout << "detID = " << detID << ": subdet " << subDet;
+  std::cout << "detID = " << detID << ": subdet " << subDet;
 //   enum SubDetector { UNKNOWN=0, TIB=3, TID=4, TOB=5, TEC=6 }
   if (subDet == int(StripSubdetector::TIB)) {
     TIBDetId tibId(detID);
-    cout << ", TIB (layer, module) (" << tibId.layer() << ", " << tibId.module()
+    std::cout << ", TIB (layer, module) (" << tibId.layer() << ", " << tibId.module()
 	 << ") string [" << tibId.string()[0] << ", " << tibId.string()[1] << ",  " << tibId.string()[2] << "]";
-    if (tibId.isRPhi()) cout << " RPhi ";
-    else if (tibId.isStereo()) cout << " Stereo ";
-    else cout << " Double-sided ";
-//     cout << ", TIB layer " << tibId.layer() << " module " << tibId.module() << " order " << tibId.order() << " side " << tibId.side();
+    if (tibId.isRPhi()) std::cout << " RPhi ";
+    else if (tibId.isStereo()) std::cout << " Stereo ";
+    else std::cout << " Double-sided ";
+//     std::cout << ", TIB layer " << tibId.layer() << " module " << tibId.module() << " order " << tibId.order() << " side " << tibId.side();
   } else if (subDet == int(StripSubdetector::TID)) {
     TIDDetId tidId(detID);
-    cout << ", TID side " << tidId.side() << " wheel " << tidId.wheel() << " ring " << tidId.ring()
+    std::cout << ", TID side " << tidId.side() << " wheel " << tidId.wheel() << " ring " << tidId.ring()
 	 << " module " << tidId.module()[0] << " " << tidId.module()[1];
   } else if (subDet == int(StripSubdetector::TOB)) {
     TOBDetId tobId(detID);
-    cout << ", TOB layer " << tobId.layer() << " rod " << tobId.rod()[0] << " " << tobId.rod()[1]
+    std::cout << ", TOB layer " << tobId.layer() << " rod " << tobId.rod()[0] << " " << tobId.rod()[1]
 	 << " module " << tobId.module();
   } else if (subDet == int(StripSubdetector::TEC)) {
     TECDetId tecId(detID);
-    cout << ", TEC side " << tecId.side() << " wheel " << tecId.wheel() << " petal " << tecId.petal()[0]
+    std::cout << ", TEC side " << tecId.side() << " wheel " << tecId.wheel() << " petal " << tecId.petal()[0]
 	 << " " << tecId.petal()[1] << " ring " << tecId.ring() << " module " << tecId.module();
-  } else cout << " not a siStrip subdetector";
-  cout << " thickness " << thickness << endl;
+  } else std::cout << " not a siStrip subdetector";
+  std::cout << " thickness " << thickness << std::endl;
 }
 
 // void ClusterNtuplizer::fillClusNtp(TrackingParticle* tp, double angNnbr, int TrackNumber, int found, int* NinCone) 
