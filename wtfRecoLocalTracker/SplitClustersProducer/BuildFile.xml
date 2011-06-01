@@ -1,0 +1,8 @@
+<use name="DataFormats/SiStripCluster"/>
+<use name="Geometry/TrackerGeometryBuilder"/>
+<use name="Geometry/Records"/>
+<use name="SimDataFormats/TrackerDigiSimLink"/>
+<use name="SimTracker/TrackAssociation"/>
+<export>
+  <lib name="wtfRecoLocalTrackerSplitClustersProducer"/>
+</export>

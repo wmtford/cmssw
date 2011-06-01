@@ -3,5 +3,4 @@
 
 #include "wtfRecoLocalTracker/SplitClustersProducer/interface/SplitClustersProducer.h"
 
-DEFINE_SEAL_MODULE();
-DEFINE_ANOTHER_FWK_MODULE(SplitClustersProducer);
+DEFINE_FWK_MODULE(SplitClustersProducer);

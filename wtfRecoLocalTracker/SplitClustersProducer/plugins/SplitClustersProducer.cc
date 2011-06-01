@@ -14,7 +14,7 @@
 // Original Author:  Marco Cardaci
 //         Created:  Sun Sep 21 15:22:40 CEST 2008
 //         Updated:  Sep 2009 (release 3.1.X) wtford
-// $Id: SplitClustersProducer.cc,v 1.16 2010/05/22 22:53:42 wtford Exp $
+// $Id: SplitClustersProducer.cc,v 1.18 2011/03/19 14:18:30 snoek Exp $
 //
 //
 
@@ -157,7 +157,7 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
 //   reco::Vertex::Point pixPriVtx(bs.x0(), bs.y0(), bs.z0());
   reco::Vertex::Point pixPriVtx(bs.position());
   iniVertex(pixelVertexColl, pixPriVtx);
-//   cout << "beamSpot " << bs.position() << "  priVtx " << pixPriVtx << endl;
+//   std::cout << "beamSpot " << bs.position() << "  priVtx " << pixPriVtx << std::endl;
  
 
   /////////////////////////
@@ -165,7 +165,7 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
   /////////////////////////
   Handle< edmNew::DetSetVector<SiStripCluster> > dsv_SiStripCluster;
   iEvent.getByLabel("siStripClusters", dsv_SiStripCluster);
-//   cout << "No. of detIDs " << dsv_SiStripCluster->size() << endl;
+//   std::cout << "No. of detIDs " << dsv_SiStripCluster->size() << std::endl;
 
   /////////////////////////
   // RecHits collections //
@@ -196,12 +196,48 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
     iclusCnt += DSViter->size();
   
     uint32_t detID=DSViter->id();
-//     cout << "  detID " << detID << " No. of clusters " << DSViter->size() << endl;
+//     std::cout << "  detID " << detID << " No. of clusters " << DSViter->size() << std::endl;
+
+    // DetSetVector to contain the clusters we produce
+    edmNew::DetSetVector<SiStripCluster>::FastFiller ssc(* splitSiStripClusters, DSViter->id());
+
+    //
+    // Check if we want to apply cluster splitting to this detector
+    //
+    bool skipThisLayer = false;
+    DetId theDet(detID);
+    int subDet = theDet.subdetId();
+    const StripGeomDetUnit* DetUnit = 0;
+    DetUnit = (const StripGeomDetUnit*) tracker.idToDetUnit(theDet);
+    if (subDet == int(StripSubdetector::TIB)) {
+      TIBDetId tibId(detID);
+      if (tibId.layer() > maxLayerTIB_) skipThisLayer = true; 
+    } else if (subDet == int(StripSubdetector::TID)) {
+      TIDDetId tidId(detID);
+      if (tidId.wheel() > maxWheelTID_) skipThisLayer = true;
+    } else if (subDet == int(StripSubdetector::TOB)) {
+      TOBDetId tobId(detID);
+      if (tobId.layer() > maxLayerTOB_) skipThisLayer = true;
+    } else if (subDet == int(StripSubdetector::TEC)) {
+      TECDetId tecId(detID);
+      if (tecId.wheel() > maxWheelTEC_) skipThisLayer = true;
+    }
+    if (splitBy == SplitClustersAlgos::noSplit || skipThisLayer) {
+      // We don't want to split clusters in this sensor; just store them in the output DetSetVector
+      // Traverse the clusters for this sensor
+      for(edmNew::DetSet<SiStripCluster>::const_iterator ClusIter= DSViter->begin(); ClusIter!=DSViter->end();ClusIter++) {
+	const SiStripCluster* clust = ClusIter;
+	std::vector<uint8_t> amp=clust->amplitudes();
+	std::vector<uint16_t> amp_temp;
+	for(size_t j=0;j<amp.size();++j) amp_temp.push_back(amp[j]);
+	SiStripCluster* newCluster = new SiStripCluster( clust->geographicalId(), clust->firstStrip(), amp_temp.begin(), amp_temp.end() );
+	ssc.push_back(SiStripCluster( *newCluster ));
+      }
+      continue;
+    }
+
     float thePathLength = straightPathlength(pixPriVtx, tracker, detID);
     edm::DetSetVector<StripDigiSimLink>::const_iterator isearch = stripdigisimlink->find(detID);
-
-    edmNew::DetSetVector<SiStripCluster>::FastFiller ssc(* splitSiStripClusters, DSViter->id());
-//     if (ssc.empty()) ssc.abort();
 
     // Insert the DetSet<SiStripCluster> in the  DetSetVec<SiStripCluster>
 
@@ -229,7 +265,8 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
 //       float normCharge = .0003*charge/max(float(1.e-6), segment.mag());
 
 //       float thePathLength = straightPathlength(pixPriVtx, tracker, detID, clust);
-      float normCharge = .0003*charge/max(float(1.e-6), thePathLength);
+//       float normCharge = .0003*charge/max(float(1.e-6), thePathLength);
+      float normCharge = MeVperMIP_*charge/max(float(1.e-6), thePathLength);
 
       size_t splittableClusterSize = 0;
       if (splitBy == SplitClustersAlgos::byHits) {
@@ -240,7 +277,7 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
         splittableClusterSize = associatedIdpr.size();
       } else if (splitBy == SplitClustersAlgos::noSplit) {
         splittableClusterSize = 0;
-      } else cout << "SplitClustersProducer:  Invalid splitBy value" << endl;
+      } else std::cout << "SplitClustersProducer:  Invalid splitBy value" << std::endl;
 
       /*            
       const StripGeomDetUnit* theGeomDetUnit = dynamic_cast<const StripGeomDetUnit*>(tkgeom->idToDetUnit(DetId(detID)));
@@ -248,7 +285,7 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
       MeasurementPoint mp(clust->barycenter(), rnd.Uniform(-0.5,0.5));
       LocalPoint localPos = topol.localPosition(mp);
       float pitch = topol.localPitch(localPos);
-      cout << "local position " << localPos << "  pitch " << pitch << endl;
+      std::cout << "local position " << localPos << "  pitch " << pitch << std::endl;
       */
 //       SiStripClusterInfo* clusterInfo = new SiStripClusterInfo(*clust, iSetup);
 
@@ -256,24 +293,24 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
 
 //    if(splittableClusterSize == 2 && amp.size()>1) {
 //    if(splittableClusterSize == 2 && amp.size()>2 && normCharge > 1.5) {
-//    cout << "Tracks/cluster = " << splittableClusterSize << " saturates = " << saturates << " normCharge = " << normCharge << endl;
-      if(splittableClusterSize > 1 && amp.size()>2 && !saturates && normCharge > 1.5) {
-//      cout << "\tsplitting cluster" << endl;
+//    std::cout << "Tracks/cluster = " << splittableClusterSize << " saturates = " << saturates << " normCharge = " << normCharge << std::endl;
+      if(splittableClusterSize > 1 && amp.size()>2 && !saturates && normCharge > minNormCharge_) {
+//      std::cout << "\tsplitting cluster" << std::endl;
 
         // We have a cluster that meets the criteria for splitting
 
        /*
         float bary = clust->barycenter();
-        cout << "Cluster barycenter:" << bary << endl;
-        cout << "Cluster localPos:" << localPos << endl;
-        cout << "Pitch:" << pitch << endl;
+        std::cout << "Cluster barycenter:" << bary << std::endl;
+        std::cout << "Cluster localPos:" << localPos << std::endl;
+        std::cout << "Pitch:" << pitch << std::endl;
         const LocalPoint HitPosition = rechit.localPosition();
         float RecHit_x=HitPosition.x();
         float RecHit_y=HitPosition.y();
         float RecHit_z=HitPosition.z();
-        cout << "---> RecHit_x:" << RecHit_x << endl;  
-        cout << "RecHit_y:" << RecHit_y << endl;  
-        cout << "RecHit_z:" << RecHit_z << endl;  
+        std::cout << "---> RecHit_x:" << RecHit_x << std::endl;  
+        std::cout << "RecHit_y:" << RecHit_y << std::endl;  
+        std::cout << "RecHit_z:" << RecHit_z << std::endl;  
         for(vector<PSimHit>::const_iterator simhitsIter=associatedA.begin(); simhitsIter<associatedA.end(); simhitsIter++){
             int trackId = (*simhitsIter).trackId();
           PSimHit simHit =(*simhitsIter);
@@ -284,16 +321,16 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
           float middlex = simhitsIter->localPosition().x();
 //           float middley = (simhitsIter->exitPoint().y() + simhitsIter->entryPoint().y() )/2.;
           float h = middlex/pitch;
-          cout << "SimHit_x in strips reference:" << h << endl;
-          cout << "Difference:" << bary - h << endl;
+          std::cout << "SimHit_x in strips reference:" << h << std::endl;
+          std::cout << "Difference:" << bary - h << std::endl;
           float SimHit_e = (*simhitsIter).energyLoss();
-          cout << "---> SimHit_x:" << SimHit_x << endl; 
-          cout << "SimHit_y:" << SimHit_y << endl;
-          cout << "SimHit_z:" << SimHit_z << endl;
-          cout << "simHit:" << simHit << endl;
-          cout << "trackId:" << trackId << endl;
-          cout << "SimHit_e:" << SimHit_e << endl;
-          cout << "-----------------" << endl;
+          std::cout << "---> SimHit_x:" << SimHit_x << std::endl; 
+          std::cout << "SimHit_y:" << SimHit_y << std::endl;
+          std::cout << "SimHit_z:" << SimHit_z << std::endl;
+          std::cout << "simHit:" << simHit << std::endl;
+          std::cout << "trackId:" << trackId << std::endl;
+          std::cout << "SimHit_e:" << SimHit_e << std::endl;
+          std::cout << "-----------------" << std::endl;
         }
        */
 
@@ -324,7 +361,7 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
 
         if(isearch != stripdigisimlink->end()) {
 	  edm::DetSet<StripDigiSimLink> link_detset = (*isearch);
-	  if (printOut) cout << "detID = " << detID << endl;
+	  if (printOut) std::cout << "detID = " << detID << std::endl;
 	  for(edm::DetSet<StripDigiSimLink>::const_iterator linkiter = link_detset.data.begin();
 	      linkiter != link_detset.data.end(); linkiter++){
 	    if( (int)(linkiter->channel()) >= first  && (int)(linkiter->channel()) < last ){
@@ -501,10 +538,10 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
     }  // traverse clusters in subdetector
   }  // traverse subdetectors
  /*
-  cout << "Number of initial clusters = " << iclusCnt << endl;
+  std::cout << "Number of initial clusters = " << iclusCnt << std::endl;
   int oclusCnt = 0;
   for(edmNew::DetSetVector<SiStripCluster>::const_iterator ODSViter=splitSiStripClusters->begin(); ODSViter != splitSiStripClusters->end(); ODSViter++ )   oclusCnt += ODSViter->size();
-  cout << "Number of split clusters = " << oclusCnt << endl;
+  std::cout << "Number of split clusters = " << oclusCnt << std::endl;
  */
   iEvent.put( splitSiStripClusters , "" );
   delete hitAssociator;
@@ -526,32 +563,32 @@ SplitClustersProducer::dumpSimTracks(TrackerHitAssociator* hitAssociator, const 
     std::vector<PSimHit> simHitOrig;  simHitOrig.clear();
     std::vector<PSimHit> simHitNew1;  simHitNew1.clear();
     std::vector<PSimHit> simHitNew2;  simHitNew2.clear();
-    hitAssociator->associateSimpleRecHitCluster(origCluster, simHitOrig);  cout << "-------------" << endl;
-    hitAssociator->associateSimpleRecHitCluster(newCluster1, simHitNew1);  cout << "............." << endl;
+    hitAssociator->associateSimpleRecHitCluster(origCluster, simHitOrig);  std::cout << "-------------" << std::endl;
+    hitAssociator->associateSimpleRecHitCluster(newCluster1, simHitNew1);  std::cout << "............." << std::endl;
     hitAssociator->associateSimpleRecHitCluster(newCluster2, simHitNew2);
-    cout << "No. of simhits (orig, 1, 2): ";
-    cout << simHitOrig.size() << ", " << simHitNew1.size() << ", " << simHitNew2.size();
+    std::cout << "No. of simhits (orig, 1, 2): ";
+    std::cout << simHitOrig.size() << ", " << simHitNew1.size() << ", " << simHitNew2.size();
   } else {  // byTracks
     std::vector<SimHitIdpr> simTkIdOrig;  simTkIdOrig.clear();
     std::vector<SimHitIdpr> simTkIdNew1;  simTkIdNew1.clear();
     std::vector<SimHitIdpr> simTkIdNew2;  simTkIdNew2.clear();
-    hitAssociator->associateSimpleRecHitCluster(origCluster, simTkIdOrig);  cout << "-------------" << endl;
-    hitAssociator->associateSimpleRecHitCluster(newCluster1, simTkIdNew1);  cout << "............." << endl;
+    hitAssociator->associateSimpleRecHitCluster(origCluster, simTkIdOrig);  std::cout << "-------------" << std::endl;
+    hitAssociator->associateSimpleRecHitCluster(newCluster1, simTkIdNew1);  std::cout << "............." << std::endl;
     hitAssociator->associateSimpleRecHitCluster(newCluster2, simTkIdNew2);
-    cout << "No. of simhits (orig, 1, 2): ";
-    cout << simTkIdOrig.size() << ", " << simTkIdNew1.size() << ", " << simTkIdNew2.size();
+    std::cout << "No. of simhits (orig, 1, 2): ";
+    std::cout << simTkIdOrig.size() << ", " << simTkIdNew1.size() << ", " << simTkIdNew2.size();
   }
-//   cout << ", widths:  " << amp0.size()
+//   std::cout << ", widths:  " << amp0.size()
 //        << ", " << amp1.size()
 //        << ", " << amp2.size();
-//   cout << ", first: " << origCluster->firstStrip();  cout << ", amps:" ;
-  cout << ", first, width:  " << origCluster->firstStrip() << ", " << amp0.size() << " || "
+//   std::cout << ", first: " << origCluster->firstStrip();  std::cout << ", amps:" ;
+  std::cout << ", first, width:  " << origCluster->firstStrip() << ", " << amp0.size() << " || "
        << newCluster1->firstStrip() << ", " << amp1.size() << " | "
-       << newCluster2->firstStrip() << ", " << amp2.size() << endl << "  Amps:";
-  for (size_t i=0; i<amp0.size(); ++i) cout << " " << int(amp0[i]);  cout << " ||";
-  for (size_t i=0; i<amp1.size(); ++i) cout << " " << int(amp1[i]);  cout << " |";
-  for (size_t i=0; i<amp2.size(); ++i) cout << " " << int(amp2[i]);  cout << endl;
-  cout << "dumpSimTracks end ================================================================" << endl;
+       << newCluster2->firstStrip() << ", " << amp2.size() << std::endl << "  Amps:";
+  for (size_t i=0; i<amp0.size(); ++i) std::cout << " " << int(amp0[i]);  std::cout << " ||";
+  for (size_t i=0; i<amp1.size(); ++i) std::cout << " " << int(amp1[i]);  std::cout << " |";
+  for (size_t i=0; i<amp2.size(); ++i) std::cout << " " << int(amp2[i]);  std::cout << std::endl;
+  std::cout << "dumpSimTracks end ================================================================" << std::endl;
 }
 
 // Dump info on DigSimLinks
@@ -590,5 +627,38 @@ void
 SplitClustersProducer::endJob() {
 }
 
+//
+// constructors and destructor
+//
+
+SplitClustersProducer::SplitClustersProducer(const edm::ParameterSet& iConfig) :
+  FileInPath_("CalibTracker/SiStripCommon/data/SiStripDetInfo.dat"),
+  splitByString(iConfig.getParameter<std::string>("splitBy")),
+  maxLayerTIB_(iConfig.getParameter<int32_t>("maxLayerTIB")),
+  maxWheelTID_(iConfig.getParameter<int32_t>("maxWheelTID")),
+  maxLayerTOB_(iConfig.getParameter<int32_t>("maxLayerTOB")),
+  maxWheelTEC_(iConfig.getParameter<int32_t>("maxWheelTEC")),
+  MeVperADC_(iConfig.getParameter<double>("MeVperADC")),
+  MeVperMIP_(iConfig.getParameter<double>("MeVperMIP")),
+  minNormCharge_(iConfig.getParameter<double>("minNormCharge"))
+{
+  produces< edmNew::DetSetVector<SiStripCluster> >( "" );
+  if (splitByString == "byHits") splitBy = SplitClustersAlgos::byHits;
+  else if (splitByString == "byTracks") splitBy = SplitClustersAlgos::byTracks;
+  else if (splitByString == "noSplit") splitBy = SplitClustersAlgos::noSplit;
+  else splitBy = SplitClustersAlgos::unknown;
+  reader = new SiStripDetInfoFileReader(FileInPath_.fullPath());
+  MIPperADC_ = MeVperADC_/MeVperMIP_;
+}
+
+
+SplitClustersProducer::~SplitClustersProducer()
+{
+ 
+   // do anything here that needs to be done at desctruction time
+   // (e.g. close files, deallocate resources etc.)
+
+}
+
 //define this as a plug-in
-DEFINE_FWK_MODULE(SplitClustersProducer);
+// DEFINE_FWK_MODULE(SplitClustersProducer);

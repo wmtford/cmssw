@@ -1,3 +1,9 @@
+1 Jun 2011  wtford -- V01-01-15
+Move SplitClustersProducer.cc to plugins.  Replace Buildfiles with .xml,
+rewritten to support inheritance of SplitClustersAlgos by
+detAnalysis/ClusterNtuplizer.  Add parameters to set the dE/dx
+calibration, limit the layers to which splitting is applied.
+
 22 May 2010  wtford -- V01-01-14
 SplitClustersAlgos:  Add overload of straightPathLength to take cluster
 as argument and account for the measured local x.  (This only changes
