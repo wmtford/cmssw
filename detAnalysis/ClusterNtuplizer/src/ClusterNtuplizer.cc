@@ -13,7 +13,7 @@
 //
 // Original Author:  William T. Ford
 //         Created:  Sat Nov 21 18:02:42 MST 2009
-// $Id: ClusterNtuplizer.cc,v 1.2 2010/05/19 22:03:38 wtford Exp $
+// $Id: ClusterNtuplizer.cc,v 1.3 2011/06/01 23:22:26 wtford Exp $
 //
 //
 
@@ -355,7 +355,7 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	if (amp[i] == 254 || amp[i] == 255) saturates = true;
       }
       if (printOut > 0) {
-	std::cout << "Custer width = " << clusiz << "  charge = " << charge;
+	std::cout << "Cluster width = " << clusiz << "  charge = " << charge;
 	if (saturates) std::cout << "  (saturates)";
 	std::cout << endl;
       }
@@ -456,7 +456,11 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       clusNtp_.allHtPathLength = allHtPathLength;
       clusNtp_.Ntp = trackID.size();
       if (printOut > 0 && trackCharge.size() == 2)
-	cout << "  charge 1st, 2nd, asymmetry = " << trackCharge[0] << "  " << trackCharge[1] << "  "
+	cout << "  charge 1st, 2nd, dE/dx 1st, 2nd, asymmetry = " 
+             << trackCharge[0] << "  "
+             << trackCharge[1] << "  "
+             << 3.36e-4*trackCharge[0]/modPathLength << "  "
+             << 3.36e-4*trackCharge[1]/modPathLength << "  "
 	     << (trackCharge[0]-trackCharge[1]) / (trackCharge[0]+trackCharge[1]) << "  " << tkFlip << endl;
       clusNtp_.firstTkChg = trackCharge.size() > 0 ? trackCharge[0] : 0;
       clusNtp_.secondTkChg = trackCharge.size() > 1 ? trackCharge[1] : 0;
@@ -464,7 +468,7 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       clusNtp_.fourthTkChg = trackCharge.size() > 3 ? trackCharge[3] : 0;
       clusNtp_.charge = charge;
       clusNtp_.Eloss = clusEloss;
-      if (saturates) clusNtp_.sat = 1;  else clusNtp_.sat = 0;
+      clusNtp_.sat = saturates ? 1 : 0;
       clusNtp_.tkFlip = tkFlip;
       clusNtp_.ovlap = ovlap;
       clusNtp_.layer = layer;

@@ -1,3 +1,6 @@
+12 Jul 2010  wtford -- V01-01-03
+ClusterNtuplizer:  Changes in printout.
+
 1 Jun 2010  wtford -- V01-01-02
 Update for CMSSW_4_2_X; Buildfile -> new Buildfile.xml.
 Add variables to the ntuple.

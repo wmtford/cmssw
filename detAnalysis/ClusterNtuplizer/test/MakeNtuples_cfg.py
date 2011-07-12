@@ -43,10 +43,10 @@ source = cms.Source ("PoolSource",
 # '/store/relval/CMSSW_4_2_0/RelValQCD_Pt_3000_3500/GEN-SIM-DIGI-RAW-HLTDEBUG/MC_42_V9-v1/0054/04E71810-8D5E-E011-90D2-001A928116DA.root',
 # '/store/relval/CMSSW_4_2_0/RelValQCD_Pt_3000_3500/GEN-SIM-DIGI-RAW-HLTDEBUG/MC_42_V9-v1/0054/02B56578-845E-E011-990A-002618943843.root'
 # ]);
-readFiles.extend( ['file:cmsData/step2_RAW2DIGI_RECO_clearLocAmpl_1k.root'] );
+# readFiles.extend( ['file:cmsData/step2_RAW2DIGI_RECO_clearLocAmpl_1k.root'] );
+# readFiles.extend( ['file:cmsData/step2sc_3T_420_splSST_1k_4MTV.root'] );
+readFiles.extend( ['file:cmsData/step2sc_3T_420_splSST_trim_1k_4MTV.root'] );
 secFiles.extend( ['file:cmsData/QCD_Pt_3000_3500_7TeV_cfi_DIGI_L1_DIGI2RAW_clearLocAmpl_1k.root'] );
-# readFiles.extend( ['file:cmsData/step2_RAW2DIGI_L1Reco_RECO.root'] );
-# secFiles.extend( ['file:cmsData/QCD_Pt_3000_3500_7TeV_cfi_DIGI_L1_DIGI2RAW.root'] );
 
 process = cms.Process("makeNtuple")
 
@@ -62,6 +62,14 @@ process.load('Configuration.StandardSequences.RawToDigi_cff')
 # process.load('Configuration.StandardSequences.Reconstruction_cff')
 process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load("RecoTracker.TrackProducer.TrackRefitters_cff")
+
+# Switch to split clusters (here and in process.makeNtuple)
+process.siStripMatchedRecHits.ClusterProducer = 'siStripSplitClusters'
+
+process.makeNtuple = cms.EDAnalyzer('ClusterNtuplizer',
+#                                     clusterSourceLabel = cms.InputTag("siStripClusters")
+                                    clusterSourceLabel = cms.InputTag("siStripSplitClusters")
+)
 
 ### conditions
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
@@ -79,10 +87,6 @@ process.TFileService = cms.Service("TFileService",
 
 #process.Timing = cms.Service("Timing")
 #process.SimpleMemoryCheck = cms.Service("SimpleMemoryCheck")
-process.makeNtuple = cms.EDAnalyzer('ClusterNtuplizer',
-                                    clusterSourceLabel = cms.InputTag("siStripClusters")
-#                                     clusterSourceLabel = cms.InputTag("siStripSplitClusters")
-)
 
 process.rechits = cms.Sequence(process.siPixelRecHits*process.siStripMatchedRecHits)
 
