@@ -1,3 +1,8 @@
+12 Jul 2011  wtford -- V01-01-16
+SplitClustersProducer, SplitCluster_MCtruth_cfi.py:  Rename the dE/dx
+cut, use the right (derived) variable for the cut; add new dE/dx
+threshold to avoid saving nearly zero-energy clusters.
+
 1 Jun 2011  wtford -- V01-01-15
 Move SplitClustersProducer.cc to plugins.  Replace Buildfiles with .xml,
 rewritten to support inheritance of SplitClustersAlgos by

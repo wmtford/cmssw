@@ -86,7 +86,8 @@ class SplitClustersProducer : public edm::EDProducer, public SplitClustersAlgos 
       double MeVperADC_;
       double MeVperMIP_;
       double MIPperADC_;
-      double minNormCharge_;
+      double minNormChargeToSplit_;
+      double minNormChargeToKeep_;
 
 //
 // static data member definitions
