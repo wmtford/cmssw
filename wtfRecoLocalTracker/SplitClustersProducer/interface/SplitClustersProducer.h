@@ -48,7 +48,7 @@ class SplitClustersProducer : public edm::EDProducer, public SplitClustersAlgos 
 //
 //  Find and dump simTracks associated with the original and new split clusters
 //
-      void dumpSimTracks(TrackerHitAssociator*, const SiStripCluster*,
+      void dumpSimTracks(TrackerHitAssociator*, const uint32_t, const SiStripCluster*,
 			 const SiStripCluster*, const SiStripCluster*, const int);
       
 //

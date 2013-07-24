@@ -1,3 +1,12 @@
+24 Jul 2013  wtford
+SplitClustersProducer:  Remove initialized, not used variable that now
+causes a compile error.
+
+9 Sep 2011  wtford
+SplitClustersProducer:  Adapt to new
+SimTracker/TrackerHitAssociation:TrackerHitAssociator which now takes
+detID from the hit rather than from the cluster. 
+
 12 Jul 2011  wtford -- V01-01-16
 SplitClustersProducer, SplitCluster_MCtruth_cfi.py:  Rename the dE/dx
 cut, use the right (derived) variable for the cut; add new dE/dx

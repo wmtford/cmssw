@@ -14,7 +14,7 @@
 // Original Author:  Marco Cardaci
 //         Created:  Sun Sep 21 15:22:40 CEST 2008
 //         Updated:  Sep 2009 (release 3.1.X) wtford
-// $Id: SplitClustersProducer.cc,v 1.1 2011/06/01 22:47:02 wtford Exp $
+// $Id: SplitClustersProducer.cc,v 1.2 2011/07/12 20:36:58 wtford Exp $
 //
 //
 
@@ -70,11 +70,10 @@
 #include "CommonTools/TrackerMap/interface/TrackerMap.h"
 #include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"  
 #include "Geometry/Records/interface/TrackerDigiGeometryRecord.h"
-#include "Geometry/CommonDetUnit/interface/GeomDetUnit.h"
+// #include "Geometry/CommonDetUnit/interface/GeomDetUnit.h"
 #include "Geometry/TrackerGeometryBuilder/interface/StripGeomDetUnit.h"
 #include "Geometry/TrackerGeometryBuilder/interface/StripGeomDetType.h"
 // #include "Geometry/CommonTopologies/interface/StripTopology.h"
-#include "Geometry/CommonDetUnit/interface/GeomDetType.h" 
 
 #include "DataFormats/DetId/interface/DetId.h"
 
@@ -206,8 +205,8 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
     bool skipThisLayer = false;
     DetId theDet(detID);
     int subDet = theDet.subdetId();
-    const StripGeomDetUnit* DetUnit = 0;
-    DetUnit = (const StripGeomDetUnit*) tracker.idToDetUnit(theDet);
+//     const StripGeomDetUnit* DetUnit = 0;
+//     DetUnit = (const StripGeomDetUnit*) tracker.idToDetUnit(theDet);
     if (subDet == int(StripSubdetector::TIB)) {
       TIBDetId tibId(detID);
       if (tibId.layer() > maxLayerTIB_) skipThisLayer = true; 
@@ -229,7 +228,7 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
 	std::vector<uint8_t> amp=clust->amplitudes();
 	std::vector<uint16_t> amp_temp;
 	for(size_t j=0;j<amp.size();++j) amp_temp.push_back(amp[j]);
-	SiStripCluster* newCluster = new SiStripCluster( clust->geographicalId(), clust->firstStrip(), amp_temp.begin(), amp_temp.end() );
+	SiStripCluster* newCluster = new SiStripCluster( detID, clust->firstStrip(), amp_temp.begin(), amp_temp.end() );
 	ssc.push_back(SiStripCluster( *newCluster ));
       }
       continue;
@@ -255,7 +254,7 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
       }
       associatedIdpr.clear();
       associatedA.clear();
-      hitAssociator->associateSimpleRecHitCluster(clust, associatedIdpr, associatedA);
+      hitAssociator->associateSimpleRecHitCluster(clust, detID, associatedIdpr, associatedA);
 
 //       vector<PSimHit>::const_iterator simhitsIter = associatedA.begin();
 //       Local3DPoint entry = simhitsIter->entryPoint();
@@ -388,12 +387,12 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
 	  }  // end of loop over DigiSimLinks
 
 	  if (splitBy == SplitClustersAlgos::byHits) {
-	    SiStripCluster* newCluster1 = new SiStripCluster( clust->geographicalId(), firstStrip1, tmp1.begin(), tmp1.end() );
-	    SiStripCluster* newCluster2 = new SiStripCluster( clust->geographicalId(), firstStrip2, tmp2.begin(), tmp2.end() );
+	    SiStripCluster* newCluster1 = new SiStripCluster( detID, firstStrip1, tmp1.begin(), tmp1.end() );
+	    SiStripCluster* newCluster2 = new SiStripCluster( detID, firstStrip2, tmp2.begin(), tmp2.end() );
 
             if (printOut || firstStrip1 < first || firstStrip1 >= last || firstStrip2 < first
 		|| firstStrip2 >= last || tmp1.size() <= 0 || tmp2.size() <= 0)
-	      dumpSimTracks(hitAssociator, clust, newCluster1, newCluster2, splitBy);
+	      dumpSimTracks(hitAssociator, detID, clust, newCluster1, newCluster2, splitBy);
 
 //             // Check if there are clusters with all amplitudes = 0
 // 	    bool tmp1_check = false;
@@ -432,13 +431,13 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
 		if ((thisAmpl=rawAmpl) < 254) thisAmpl = min(uint16_t(253), max(uint16_t(0), (uint16_t)(rawAmpl*trackFraction[i]+0.5)));
 		trackAmp[i].push_back(thisAmpl);
 	      }
-	      SiStripCluster* newClusteri = new SiStripCluster(clust->geographicalId(), firstStrip[i],
+	      SiStripCluster* newClusteri = new SiStripCluster( detID, firstStrip[i],
 							       trackAmp[i].begin(), trackAmp[i].end() );
 	      newCluster.push_back(newClusteri);
 	    }
             if (printOut || firstStrip[0] < first || firstStrip[0] >= last || firstStrip[1] < first
 		|| firstStrip[1] >= last || trackAmp[0].size() <= 0 || trackAmp[1].size() <= 0)
-	      dumpSimTracks(hitAssociator, clust, newCluster[0], newCluster[1], splitBy);
+	      dumpSimTracks(hitAssociator, detID, clust, newCluster[0], newCluster[1], splitBy);
 	    for (size_t i=0; i < trackID.size(); ++i) {
 // 	      bool emptyCluster = true;
 // 	      for(size_t j=0; j<trackAmp[i].size(); ++j) if((trackAmp[i])[j] >0) emptyCluster = false;
@@ -458,7 +457,7 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
 	  std::vector<uint16_t> amp_temp;
 //           std::cout << "Missing digisimlink!!!" << std::endl;
 	  for(size_t j=0;j<amp.size();++j) amp_temp.push_back(amp[j]);
-	  SiStripCluster* newCluster = new SiStripCluster( clust->geographicalId(), clust->firstStrip(), amp_temp.begin(), amp_temp.end() );
+	  SiStripCluster* newCluster = new SiStripCluster( detID, clust->firstStrip(), amp_temp.begin(), amp_temp.end() );
 	  ssc.push_back(SiStripCluster( *newCluster ));
 	}
 
@@ -466,7 +465,7 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
         // We don't have a splittable cluster; just store cluster in the output DetSetVector
 	std::vector<uint16_t> amp_temp;
 	for(size_t j=0;j<amp.size();++j) amp_temp.push_back(amp[j]);
-	SiStripCluster* newCluster = new SiStripCluster( clust->geographicalId(), clust->firstStrip(), amp_temp.begin(), amp_temp.end() );
+	SiStripCluster* newCluster = new SiStripCluster( detID, clust->firstStrip(), amp_temp.begin(), amp_temp.end() );
 	ssc.push_back(SiStripCluster( *newCluster ));
       }
     }  // traverse clusters in subdetector
@@ -485,7 +484,7 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
 //  Find and dump simTracks associated with the original and new split clusters
 //
 void
-SplitClustersProducer::dumpSimTracks(TrackerHitAssociator* hitAssociator, const SiStripCluster* origCluster,
+SplitClustersProducer::dumpSimTracks(TrackerHitAssociator* hitAssociator, const uint32_t detID, const SiStripCluster* origCluster,
 				     const SiStripCluster* newCluster1, const SiStripCluster* newCluster2,
 				     const int splitBy)
 {
@@ -497,18 +496,18 @@ SplitClustersProducer::dumpSimTracks(TrackerHitAssociator* hitAssociator, const 
     std::vector<PSimHit> simHitOrig;  simHitOrig.clear();
     std::vector<PSimHit> simHitNew1;  simHitNew1.clear();
     std::vector<PSimHit> simHitNew2;  simHitNew2.clear();
-    hitAssociator->associateSimpleRecHitCluster(origCluster, simHitOrig);  std::cout << "-------------" << std::endl;
-    hitAssociator->associateSimpleRecHitCluster(newCluster1, simHitNew1);  std::cout << "............." << std::endl;
-    hitAssociator->associateSimpleRecHitCluster(newCluster2, simHitNew2);
+    hitAssociator->associateSimpleRecHitCluster(origCluster, detID, simHitOrig);  std::cout << "-------------" << std::endl;
+    hitAssociator->associateSimpleRecHitCluster(newCluster1, detID, simHitNew1);  std::cout << "............." << std::endl;
+    hitAssociator->associateSimpleRecHitCluster(newCluster2, detID, simHitNew2);
     std::cout << "No. of simhits (orig, 1, 2): ";
     std::cout << simHitOrig.size() << ", " << simHitNew1.size() << ", " << simHitNew2.size();
   } else {  // byTracks
     std::vector<SimHitIdpr> simTkIdOrig;  simTkIdOrig.clear();
     std::vector<SimHitIdpr> simTkIdNew1;  simTkIdNew1.clear();
     std::vector<SimHitIdpr> simTkIdNew2;  simTkIdNew2.clear();
-    hitAssociator->associateSimpleRecHitCluster(origCluster, simTkIdOrig);  std::cout << "-------------" << std::endl;
-    hitAssociator->associateSimpleRecHitCluster(newCluster1, simTkIdNew1);  std::cout << "............." << std::endl;
-    hitAssociator->associateSimpleRecHitCluster(newCluster2, simTkIdNew2);
+    hitAssociator->associateSimpleRecHitCluster(origCluster, detID, simTkIdOrig);  std::cout << "-------------" << std::endl;
+    hitAssociator->associateSimpleRecHitCluster(newCluster1, detID, simTkIdNew1);  std::cout << "............." << std::endl;
+    hitAssociator->associateSimpleRecHitCluster(newCluster2, detID, simTkIdNew2);
     std::cout << "No. of simhits (orig, 1, 2): ";
     std::cout << simTkIdOrig.size() << ", " << simTkIdNew1.size() << ", " << simTkIdNew2.size();
   }
