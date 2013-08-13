@@ -136,9 +136,7 @@ SplitClustersProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup
 
   // get the beam spot
   edm::Handle<reco::BeamSpot> recoBeamSpotHandle;
-//   edm::InputTag bsSrc          = conf_.getParameter<edm::InputTag>("beamSpot");
-//   iEvent.getByLabel(bsSrc,recoBeamSpotHandle);
-  iEvent.getByLabel("hltOfflineBeamSpot",recoBeamSpotHandle);
+  iEvent.getByLabel(bsSrc_, recoBeamSpotHandle);
   const reco::BeamSpot& bs = *recoBeamSpotHandle;      
 
   //
@@ -567,6 +565,7 @@ SplitClustersProducer::endJob() {
 SplitClustersProducer::SplitClustersProducer(const edm::ParameterSet& iConfig) :
   FileInPath_("CalibTracker/SiStripCommon/data/SiStripDetInfo.dat"),
   splitByString(iConfig.getParameter<std::string>("splitBy")),
+  bsSrc_(iConfig.getParameter<edm::InputTag>("beamSpot")),
   maxLayerTIB_(iConfig.getParameter<int32_t>("maxLayerTIB")),
   maxWheelTID_(iConfig.getParameter<int32_t>("maxWheelTID")),
   maxLayerTOB_(iConfig.getParameter<int32_t>("maxLayerTOB")),

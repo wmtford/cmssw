@@ -79,6 +79,7 @@ class SplitClustersProducer : public edm::EDProducer, public SplitClustersAlgos 
 
       int splitBy;
       std::string splitByString;
+      edm::InputTag bsSrc_;
       unsigned int maxLayerTIB_;
       unsigned int maxWheelTID_;
       unsigned int maxLayerTOB_;

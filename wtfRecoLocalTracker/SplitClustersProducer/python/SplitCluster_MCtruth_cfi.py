@@ -4,6 +4,7 @@ from RecoTracker.DeDx.dedxDiscriminator_Prod_cfi import dedxDiscrimProd
 
 siStripSplitClusters = cms.EDProducer("SplitClustersProducer",
   splitBy = cms.string('byTracks'),
+  beamSpot = cms.InputTag("offlineBeamSpot"),                                
   MeVperADC = dedxDiscrimProd.MeVperADCStrip,
   MeVperMIP = cms.double(2.9),
   minNormChargeToSplit = cms.double(1.5),
