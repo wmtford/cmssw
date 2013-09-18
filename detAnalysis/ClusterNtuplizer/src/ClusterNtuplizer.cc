@@ -90,6 +90,7 @@ private:
 private:
   edm::ParameterSet conf_;
   edm::InputTag theClusterSourceLabel;
+  edm::InputTag bsSrc_;
 
   std::vector<const SiStripCluster*> vPSiStripCluster;
 
@@ -183,7 +184,8 @@ private:
 //
 ClusterNtuplizer::ClusterNtuplizer(const edm::ParameterSet& iConfig): 
  conf_(iConfig),
- theClusterSourceLabel(iConfig.getParameter<edm::InputTag>( "clusterSourceLabel" ))
+ theClusterSourceLabel(iConfig.getParameter<edm::InputTag>( "clusterSourceLabel" )),
+ bsSrc_(iConfig.getParameter<edm::InputTag>("beamSpot"))
 
 {
    //now do what ever initialization is needed
@@ -219,11 +221,8 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
   evCnt_++;
 
-  // get the beam spot
   edm::Handle<reco::BeamSpot> recoBeamSpotHandle;
-//   edm::InputTag bsSrc          = conf_.getParameter<edm::InputTag>("beamSpot");
-//   iEvent.getByLabel(bsSrc, recoBeamSpotHandle);
-  iEvent.getByLabel("hltOfflineBeamSpot", recoBeamSpotHandle);
+  iEvent.getByLabel(bsSrc_, recoBeamSpotHandle);
   const reco::BeamSpot& bs = *recoBeamSpotHandle;      
 
   edm::Handle<reco::VertexCollection>  pixelVertexCollectionHandle;
@@ -355,7 +354,7 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	if (amp[i] == 254 || amp[i] == 255) saturates = true;
       }
       if (printOut > 0) {
-	std::cout << "Cluster width = " << clusiz << "  charge = " << charge;
+	std::cout << "Cluster (width, first, last) = (" << clusiz << ", " << first << ", " << last-1 << ")  charge = " << charge;
 	if (saturates) std::cout << "  (saturates)";
 	std::cout << endl;
       }
@@ -379,6 +378,7 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
         for(edm::DetSet<StripDigiSimLink>::const_iterator linkiter = link_detset.data.begin();
 	    linkiter != link_detset.data.end(); linkiter++){
 	  int stripIdx;
+	  if (printOut > 3) std::cout << "    simLink channel = " << linkiter->channel() << endl;
           if( (int)(linkiter->channel()) >= first  && (int)(linkiter->channel()) < last ){
 	    unsigned int currentCFPos = linkiter->CFposition()-1;
 	    stripIdx = (int)linkiter->channel()-first;
