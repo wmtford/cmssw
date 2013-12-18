@@ -283,13 +283,28 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   //  trackerContainers.push_back("g4SimHitsTrackerHitsPixelEndcapLowTof");
   //  trackerContainers.push_back("g4SimHitsTrackerHitsPixelEndcapHighTof");
 
+
+  unsigned simHitCounter(0);
+  std::vector<std::pair<int,int>> simHitMap;
+  simHitMap.clear();
   for(uint32_t i = 0; i< trackerContainers.size();i++){
     iEvent.getByLabel("mix",trackerContainers[i],cf_simhit);
     cf_simhitvec.push_back(cf_simhit.product());
+//     std::cout << i << "  " << cf_simhit->getNrSignals() << std::endl;
+    if (i == 0) simHitMap.push_back(std::make_pair(StripSubdetector::TIB, simHitCounter));
+    else if (i == 2) simHitMap.push_back(std::make_pair(StripSubdetector::TID, simHitCounter));
+    else if (i == 4) simHitMap.push_back(std::make_pair(StripSubdetector::TOB, simHitCounter));
+    else if (i == 6) simHitMap.push_back(std::make_pair(StripSubdetector::TEC, simHitCounter));
+    simHitCounter += cf_simhit->getNrSignals();
   }
+//   std::cout << "simHitMap = " << std::endl;
+//   for (std::vector<std::pair<int,int>>::iterator it = simHitMap.begin(); it != simHitMap.end(); ++it)
+//     std::cout << ' ' << (*it).first << ", " << (*it).second << std::endl;
   
   std::auto_ptr<MixCollection<PSimHit> > allTrackerHits(new MixCollection<PSimHit>(cf_simhitvec));
   TrackerHits = (*allTrackerHits);
+// cite:  SimTracker/SiStripDigitizer/plugins/DigiSimLinkProducer.cc
+//   std::cout << "TrackerHits has " << TrackerHits.sizeSignal() << " signal and " << TrackerHits.sizePileup() << " pileup hits " << std::endl;
 
   /////////////////////////
   // Cluster collections //
@@ -308,13 +323,23 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   }
   const TrackerGeometry &tracker(*tkgeom);
 
+//   std::cout << "TIB, TOB, TID, TEC enums are " << int(StripSubdetector::TIB) << " " << int(StripSubdetector::TOB) << " " << int(StripSubdetector::TID) << " " << int(StripSubdetector::TEC) << endl;
+
   // Loop over subdetectors
+  int clusterCount = 0;
+  int clustersNoDigiSimLink = 0;
   for(edmNew::DetSetVector<SiStripCluster>::const_iterator DSViter=dsv_SiStripCluster->begin();
       DSViter != dsv_SiStripCluster->end(); DSViter++ ) {
 
     uint32_t detID = DSViter->id();
     DetId theDet(detID);
     int subDet = theDet.subdetId();
+
+    unsigned int subDetOffset(0);
+    for (std::vector<std::pair<int,int>>::iterator it = simHitMap.begin(); it != simHitMap.end(); ++it)
+      if((*it).first == subDet) subDetOffset = (*it).second;
+//     std::cout << "subDet, offset = " << subDet << ", " << subDetOffset << std::endl;
+
     const StripGeomDetUnit* DetUnit = 0;
     DetUnit = (const StripGeomDetUnit*) tracker.idToDetUnit(theDet);
     float thickness = 0;
@@ -341,6 +366,8 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     // Traverse the clusters for this subdetector
     for(edmNew::DetSet<SiStripCluster>::const_iterator ClusIter= DSViter->begin();
 	ClusIter!=DSViter->end();ClusIter++) {
+
+      clusterCount++;
       const SiStripCluster* clust = ClusIter;
 
       std::vector<uint8_t> amp=clust->amplitudes();
@@ -371,6 +398,7 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       std::vector<float> hitPathLength;
 //       std::vector<float> hitEloss;
       if(isearch == stripdigisimlink->end()) {
+	clustersNoDigiSimLink++;
 	if (printOut > 0) std::cout << "No digisimlinks for this module" << std::endl;
       } else {
 	int prevIdx = -1;
@@ -380,7 +408,7 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	  int stripIdx;
 	  if (printOut > 3) std::cout << "    simLink channel = " << linkiter->channel() << endl;
           if( (int)(linkiter->channel()) >= first  && (int)(linkiter->channel()) < last ){
-	    unsigned int currentCFPos = linkiter->CFposition()-1;
+	    unsigned int currentCFPos = linkiter->CFposition()-1 + subDetOffset;
 	    stripIdx = (int)linkiter->channel()-first;
 	    uint16_t rawAmpl = (uint16_t)(amp[stripIdx]);
 	    float stripEloss = TrackerHits.getObject(currentCFPos).energyLoss();
@@ -422,60 +450,62 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	  }  // DigiSimLink belongs to this cluster
 	}  // Traverse DigiSimLinks
 	if (ovlap && trackID[1] < trackID[0]) tkFlip = 1;
-      }  // DigiSimLinks present for this cluster
 
 // RecoTracker/DeDx/python/dedxDiscriminator_Prod_cfi.py, line 12 -- MeVperADCStrip = cms.double(3.61e-06*250)
 
       // Fill the cluster Ntuple
-//       clusNtp_.init();
-//       fillClusNtp();
-      clusNtp_.subDet = subDet;
-      clusNtp_.thickness = thickness;
-      clusNtp_.width = amp.size();
-      clusNtp_.NsimHits = CFpos.size();
-      clusNtp_.firstProcess = hitProcess.size() > 0 ? hitProcess[0] : 0;
-      clusNtp_.secondProcess = hitProcess.size() > 1 ? hitProcess[1] : 0;
-      clusNtp_.thirdProcess = hitProcess.size() > 2 ? hitProcess[2] : 0;
-      clusNtp_.fourthProcess = hitProcess.size() > 3 ? hitProcess[3] : 0;
-      clusNtp_.firstPID = hitPID.size() > 0 ? hitPID[0] : 0;
-      clusNtp_.secondPID = hitPID.size() > 1 ? hitPID[1] : 0;
-      clusNtp_.thirdPID = hitPID.size() > 2 ? hitPID[2] : 0;
-      clusNtp_.fourthPID = hitPID.size() > 3 ? hitPID[3] : 0;
-      clusNtp_.firstPmag = hitPmag.size() > 0 ? hitPmag[0] : 0;
-      clusNtp_.secondPmag = hitPmag.size() > 1 ? hitPmag[1] : 0;
-      clusNtp_.thirdPmag = hitPmag.size() > 2 ? hitPmag[2] : 0;
-      clusNtp_.fourthPmag = hitPmag.size() > 3 ? hitPmag[3] : 0;
-      clusNtp_.firstPathLength = hitPathLength.size() > 0 ? hitPathLength[0]: 0;
-      clusNtp_.secondPathLength = hitPathLength.size() > 1 ? hitPathLength[1]: 0;
-      clusNtp_.thirdPathLength = hitPathLength.size() > 2 ? hitPathLength[2]: 0;
-      clusNtp_.fourthPathLength = hitPathLength.size() > 3 ? hitPathLength[3]: 0;
-      clusNtp_.pathLstraight = modPathLength;
-      float allHtPathLength = 0;
-      for (unsigned int ih=0; ih<hitPathLength.size(); ++ih)
-	allHtPathLength += hitPathLength[ih];
-      clusNtp_.allHtPathLength = allHtPathLength;
-      clusNtp_.Ntp = trackID.size();
-      if (printOut > 0 && trackCharge.size() == 2)
-	cout << "  charge 1st, 2nd, dE/dx 1st, 2nd, asymmetry = " 
-             << trackCharge[0] << "  "
-             << trackCharge[1] << "  "
-             << 3.36e-4*trackCharge[0]/modPathLength << "  "
-             << 3.36e-4*trackCharge[1]/modPathLength << "  "
-	     << (trackCharge[0]-trackCharge[1]) / (trackCharge[0]+trackCharge[1]) << "  " << tkFlip << endl;
-      clusNtp_.firstTkChg = trackCharge.size() > 0 ? trackCharge[0] : 0;
-      clusNtp_.secondTkChg = trackCharge.size() > 1 ? trackCharge[1] : 0;
-      clusNtp_.thirdTkChg = trackCharge.size() > 2 ? trackCharge[2] : 0;
-      clusNtp_.fourthTkChg = trackCharge.size() > 3 ? trackCharge[3] : 0;
-      clusNtp_.charge = charge;
-      clusNtp_.Eloss = clusEloss;
-      clusNtp_.sat = saturates ? 1 : 0;
-      clusNtp_.tkFlip = tkFlip;
-      clusNtp_.ovlap = ovlap;
-      clusNtp_.layer = layer;
-      clusNtp_.stereo = stereo;
-      clusTree_->Fill();
+//         clusNtp_.init();
+//         fillClusNtp();
+	clusNtp_.subDet = subDet;
+        clusNtp_.thickness = thickness;
+        clusNtp_.width = amp.size();
+        clusNtp_.NsimHits = CFpos.size();
+        clusNtp_.firstProcess = hitProcess.size() > 0 ? hitProcess[0] : 0;
+        clusNtp_.secondProcess = hitProcess.size() > 1 ? hitProcess[1] : 0;
+        clusNtp_.thirdProcess = hitProcess.size() > 2 ? hitProcess[2] : 0;
+        clusNtp_.fourthProcess = hitProcess.size() > 3 ? hitProcess[3] : 0;
+        clusNtp_.firstPID = hitPID.size() > 0 ? hitPID[0] : 0;
+        clusNtp_.secondPID = hitPID.size() > 1 ? hitPID[1] : 0;
+        clusNtp_.thirdPID = hitPID.size() > 2 ? hitPID[2] : 0;
+        clusNtp_.fourthPID = hitPID.size() > 3 ? hitPID[3] : 0;
+        clusNtp_.firstPmag = hitPmag.size() > 0 ? hitPmag[0] : 0;
+        clusNtp_.secondPmag = hitPmag.size() > 1 ? hitPmag[1] : 0;
+        clusNtp_.thirdPmag = hitPmag.size() > 2 ? hitPmag[2] : 0;
+        clusNtp_.fourthPmag = hitPmag.size() > 3 ? hitPmag[3] : 0;
+        clusNtp_.firstPathLength = hitPathLength.size() > 0 ? hitPathLength[0]: 0;
+        clusNtp_.secondPathLength = hitPathLength.size() > 1 ? hitPathLength[1]: 0;
+        clusNtp_.thirdPathLength = hitPathLength.size() > 2 ? hitPathLength[2]: 0;
+        clusNtp_.fourthPathLength = hitPathLength.size() > 3 ? hitPathLength[3]: 0;
+        clusNtp_.pathLstraight = modPathLength;
+        float allHtPathLength = 0;
+        for (unsigned int ih=0; ih<hitPathLength.size(); ++ih)
+	  allHtPathLength += hitPathLength[ih];
+        clusNtp_.allHtPathLength = allHtPathLength;
+	clusNtp_.Ntp = trackID.size();
+	if (printOut > 0 && trackCharge.size() == 2)
+  	  cout << "  charge 1st, 2nd, dE/dx 1st, 2nd, asymmetry = "
+               << trackCharge[0] << "  "
+               << trackCharge[1] << "  "
+               << 3.36e-4*trackCharge[0]/modPathLength << "  "
+               << 3.36e-4*trackCharge[1]/modPathLength << "  "
+  	       << (trackCharge[0]-trackCharge[1]) / (trackCharge[0]+trackCharge[1]) 
+               << "  " << tkFlip << endl;
+        clusNtp_.firstTkChg = trackCharge.size() > 0 ? trackCharge[0] : 0;
+        clusNtp_.secondTkChg = trackCharge.size() > 1 ? trackCharge[1] : 0;
+        clusNtp_.thirdTkChg = trackCharge.size() > 2 ? trackCharge[2] : 0;
+        clusNtp_.fourthTkChg = trackCharge.size() > 3 ? trackCharge[3] : 0;
+        clusNtp_.charge = charge;
+        clusNtp_.Eloss = clusEloss;
+        clusNtp_.sat = saturates ? 1 : 0;
+        clusNtp_.tkFlip = tkFlip;
+        clusNtp_.ovlap = ovlap;
+        clusNtp_.layer = layer;
+        clusNtp_.stereo = stereo;
+        clusTree_->Fill();
+      }  // DigiSimLinks present for this cluster
     }  // traverse clusters in subdetector
   }  // traverse subdetectors
+//   cout << clusterCount << " total clusters; " << clustersNoDigiSimLink << " without digiSimLinks" << endl;
 }
 
 
