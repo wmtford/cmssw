@@ -53,9 +53,10 @@ process.load("RecoTracker.TrackProducer.TrackRefitters_cff")
 ### conditions
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 process.GlobalTag.globaltag = 'PRE_ST62_V8::All'
+# process.GlobalTag.globaltag = 'POSTLS162_V1::All'
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(100))
-process.MessageLogger.cerr.FwkReport.reportEvery = 1
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1000))
+process.MessageLogger.cerr.FwkReport.reportEvery = 10
 #process.MessageLogger.cerr.threshold = 'Info'
 process.source = source
 
@@ -67,9 +68,9 @@ process.load('wtfRecoLocalTracker.SplitClustersProducer.SplitCluster_MCtruth_cfi
 process.siStripSplitClusters.splitBy = cms.string('byTracks')
 process.siStripSplitClusters.minNormChargeToSplit = cms.double(0.0)
 process.siStripSplitClusters.minNormChargeToKeep = cms.double(0.0)
-process.siStripSplitClusters.maxLayerTOB = cms.int32(0)
-process.siStripSplitClusters.maxWheelTID = cms.int32(0)
-process.siStripSplitClusters.maxWheelTEC = cms.int32(0)
+# process.siStripSplitClusters.maxLayerTOB = cms.int32(0)
+# process.siStripSplitClusters.maxWheelTID = cms.int32(0)
+# process.siStripSplitClusters.maxWheelTEC = cms.int32(0)
 
 process.out = cms.OutputModule("PoolOutputModule",
  outputCommands = cms.untracked.vstring('drop *',
