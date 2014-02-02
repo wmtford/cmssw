@@ -214,6 +214,7 @@ std::vector<PSimHit> TrackerHitAssociator::associateHit(const TrackingRecHit & t
   //Save the SimHits in a vector. for the macthed hits both the rphi and stereo simhits are saved. 
   //
   
+  StripHits = false;  // for a test
   if(StripHits){
     //USE THIS FOR STRIPS
 //     std::cout << "NEW SIZE =  " << simhitCFPos.size() << std::endl;
@@ -255,6 +256,7 @@ std::vector<PSimHit> TrackerHitAssociator::associateHit(const TrackingRecHit & t
 // 	    	  cout << "Associator ---> ID" << ihit.trackId() << " Simhit x= " << ihit.localPosition().x() 
 // 	    	       << " y= " <<  ihit.localPosition().y() << " z= " <<  ihit.localPosition().x() << endl; 
 	    result.push_back(ihit);
+	    continue;
 	  }
 	}
       }
@@ -283,6 +285,7 @@ std::vector<PSimHit> TrackerHitAssociator::associateHit(const TrackingRecHit & t
 	      //	  cout << "GluedDet Associator ---> ID" << ihit.trackId() << " Simhit x= " << ihit.localPosition().x() 
 	      //	       << " y= " <<  ihit.localPosition().y() << " z= " <<  ihit.localPosition().x() << endl; 
 	      result.push_back(ihit);
+	      continue;
 	    }
 	  }
 	}
