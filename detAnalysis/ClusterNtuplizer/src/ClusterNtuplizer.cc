@@ -89,6 +89,7 @@ private:
 
   typedef std::map<unsigned int, std::vector<PSimHit> > simhit_map;
   simhit_map SimHitMap;
+//   typedef std::vector<PSimHit>::const_iterator simhitvec_iterator;
 
 private:
   edm::ParameterSet conf_;
@@ -399,10 +400,11 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       int tkFlip = 0;
       int ovlap = 0;
       std::vector<unsigned int> trackID;
-      std::vector<unsigned int> hitID;
 
       std::vector<PSimHit> detIDhits;
       detIDhits.clear();
+      std::vector<PSimHit> onClusterHits;
+      onClusterHits.clear();
       std::map<unsigned int, std::vector<PSimHit> >::const_iterator it = SimHitMap.find(detID);
       if (it!= SimHitMap.end()) {
 	detIDhits = it->second;
@@ -412,11 +414,11 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	std::map<unsigned int, std::vector<PSimHit> >::const_iterator itster = SimHitMap.find(detID+1); //iterator to the simhit in the stereo module
 	if (itrphi!= SimHitMap.end()&&itster!=SimHitMap.end()) {
 	  detIDhits = itrphi->second;
-	  detIDhits.insert(simHit.end(),(itster->second).begin(),(itster->second).end());
+	  detIDhits.insert(detIDhits.end(),(itster->second).begin(),(itster->second).end());
 	}
       }
-      vector<PSimHit>::const_iterator simHitIter = detIDhits.begin();
-      vector<PSimHit>::const_iterator simHitIterEnd = detIDhits.end();
+      std::vector<PSimHit>::const_iterator simHitIter = detIDhits.begin();
+      std::vector<PSimHit>::const_iterator simHitIterEnd = detIDhits.end();
       std::vector<unsigned int> hitProcess;
       std::vector<int> hitPID;
       std::vector<float> trackCharge;
@@ -434,7 +436,7 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	  int stripIdx;
 	  if (printOut > 3) std::cout << "    simLink channel = " << linkiter->channel() << endl;
           if( (int)(linkiter->channel()) >= first  && (int)(linkiter->channel()) < last ){
-// 	    unsigned int currentCFPos = linkiter->CFposition()-1;
+	    unsigned int currentCFPos = linkiter->CFposition()-1;
 // 	    unsigned int currentCFPos = linkiter->CFposition()-1 + subDetOffset;
 	    stripIdx = (int)linkiter->channel()-first;
 	    uint16_t rawAmpl = (uint16_t)(amp[stripIdx]);
@@ -457,10 +459,9 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 		if(simHitid == thisTrackID && simHiteid == linkiter->eventId()) {
 		  // Found a hit associated with this track
 		  bool newHit = true;
-		  if (std::find(hitId.begin(), hitID.end(), thisTrackID) != hitID.end()) newHit = false;
+		  if (std::find(onClusterHits.begin(), onClusterHits.end(), simHitIter) != onClusterHits.end()) newHit = false;
 		  if (newHit) {
-		    thisHit = (int) simHitIter;
-		    hitID.push_back(thisHit);
+		    onClusterHits.push_back(*simHitIter);
 		    float stripEloss = ihit.energyLoss();
 		    unsigned short thisHitProcess = ihit.processType();
 		    if (printOut > 1)
@@ -498,7 +499,7 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	clusNtp_.subDet = subDet;
         clusNtp_.thickness = thickness;
         clusNtp_.width = amp.size();
-        clusNtp_.NsimHits = hitID.size();
+        clusNtp_.NsimHits = onClusterHits.size();
         clusNtp_.firstProcess = hitProcess.size() > 0 ? hitProcess[0] : 0;
         clusNtp_.secondProcess = hitProcess.size() > 1 ? hitProcess[1] : 0;
         clusNtp_.thirdProcess = hitProcess.size() > 2 ? hitProcess[2] : 0;
