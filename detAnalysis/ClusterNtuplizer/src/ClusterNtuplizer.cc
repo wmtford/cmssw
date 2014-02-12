@@ -403,7 +403,7 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
       std::vector<PSimHit> detIDhits;
       detIDhits.clear();
-      std::vector<PSimHit> onClusterHits;
+      std::vector<std::vector<PSimHit>::const_iterator> onClusterHits;
       onClusterHits.clear();
       std::map<unsigned int, std::vector<PSimHit> >::const_iterator it = SimHitMap.find(detID);
       if (it!= SimHitMap.end()) {
@@ -461,7 +461,7 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 		  bool newHit = true;
 		  if (std::find(onClusterHits.begin(), onClusterHits.end(), simHitIter) != onClusterHits.end()) newHit = false;
 		  if (newHit) {
-		    onClusterHits.push_back(*simHitIter);
+		    onClusterHits.push_back(simHitIter);
 		    float stripEloss = ihit.energyLoss();
 		    unsigned short thisHitProcess = ihit.processType();
 		    if (printOut > 1)
