@@ -488,6 +488,8 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	    prevIdx = stripIdx;
 	  }  // DigiSimLink belongs to this cluster
 	}  // Traverse DigiSimLinks
+	if (prevIdx == -1) continue;  // No truth information for this cluster; move on to the next one.
+
 	if (ovlap && trackID[1] < trackID[0]) tkFlip = 1;
 
 // RecoTracker/DeDx/python/dedxDiscriminator_Prod_cfi.py, line 12 -- MeVperADCStrip = cms.double(3.61e-06*250)
