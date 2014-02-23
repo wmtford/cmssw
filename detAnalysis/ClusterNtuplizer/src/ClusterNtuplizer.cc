@@ -95,6 +95,7 @@ private:
   edm::ParameterSet conf_;
   edm::InputTag theClusterSourceLabel;
   edm::InputTag bsSrc_;
+  int printOut_;
 
   std::vector<const SiStripCluster*> vPSiStripCluster;
 
@@ -189,7 +190,8 @@ private:
 ClusterNtuplizer::ClusterNtuplizer(const edm::ParameterSet& iConfig): 
  conf_(iConfig),
  theClusterSourceLabel(iConfig.getParameter<edm::InputTag>( "clusterSourceLabel" )),
- bsSrc_(iConfig.getParameter<edm::InputTag>("beamSpot"))
+ bsSrc_(iConfig.getParameter<edm::InputTag>("beamSpot")),
+ printOut_(iConfig.getUntrackedParameter<int>("printOut"))
 
 {
    //now do what ever initialization is needed
@@ -217,8 +219,7 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   using namespace edm;
   using namespace std;
 
-  int printOut = 0;
-  if (printOut > 0) std::cout << std::endl;
+  if (printOut_ > 0) std::cout << std::endl;
   trackerContainers.clear();
   cf_simhit.clear();
   cf_simhitvec.clear();
@@ -241,13 +242,11 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   float zv = 0, zverr = 0;
   iniZvertex(pixelVertexColl, zv, zverr);
   hZvPri->Fill(zv);
-//   pvNtp_.init();
-//   fillPvNtp();
 //  iterate over pixel vertices and fill the pixel vertex Ntuple
   int iVtx = 0;
   for(reco::VertexCollection::const_iterator vi = pixelVertexColl.begin(); 
       vi != pixelVertexColl.end(); ++vi) {
-    if (printOut > 0) std::cout << "  " << vi->tracksSize() << "  " << vi->z() << "+/-" << vi->zError() << std::endl;
+    if (printOut_ > 0) std::cout << "  " << vi->tracksSize() << "  " << vi->z() << "+/-" << vi->zError() << std::endl;
     pvNtp_.isValid = int(vi->isValid());
     pvNtp_.isFake = int(vi->isFake());
     pvNtp_.Ntrks = vi->tracksSize();
@@ -269,7 +268,7 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     }
     ++iVtx;
   }
-  if (printOut > 0) std::cout << "  zv = " << zv << " +/- " << zverr << std::endl;
+  if (printOut_ > 0) std::cout << "  zv = " << zv << " +/- " << zverr << std::endl;
 
   //
   // Take by default all tracker SimHits
@@ -321,7 +320,6 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   // Cluster collections //
   /////////////////////////
   Handle< edmNew::DetSetVector<SiStripCluster> > dsv_SiStripCluster;
-//   iEvent.getByLabel("siStripClusters", dsv_SiStripCluster);
   iEvent.getByLabel(theClusterSourceLabel, dsv_SiStripCluster);
 
   iEvent.getByLabel("simSiStripDigis", stripdigisimlink);
@@ -333,8 +331,6 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     return;
   }
   const TrackerGeometry &tracker(*tkgeom);
-
-//   std::cout << "TIB, TOB, TID, TEC enums are " << int(StripSubdetector::TIB) << " " << int(StripSubdetector::TOB) << " " << int(StripSubdetector::TID) << " " << int(StripSubdetector::TEC) << endl;
 
   // Loop over subdetectors
   int clusterCount = 0;
@@ -362,14 +358,14 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       layer = tibId.layer();
       if (tibId.isStereo()) stereo = 1;
     }
-    if (printOut > 0) printDetInfo(detID, tracker);
+    if (printOut_ > 0) printDetInfo(detID, tracker);
 
     LocalPoint locVtx = DetUnit->toLocal(GlobalPoint(pixPriVtx.X(), pixPriVtx.Y(), pixPriVtx.Z()));
 //     LocalPoint locVtx = DetUnit->toLocal(GlobalPoint(0., 0., zv));
     float modPathLength = fabs(thickness*locVtx.mag()/locVtx.z());
-    if (printOut > 0) {
+    if (printOut_ > 0) {
       std::cout << "  Module at " << DetUnit->position() << std::endl;
-      std::cout << "  PriVtx at " << locVtx << " path " << modPathLength << " " << DSViter->size() << " clusters" << std::endl;
+      std::cout << "  PriVtx at " << locVtx;  printf("%s%7.4f%s%4d%s\n", " path ", modPathLength, ", ", DSViter->size(), " clusters");
     }
 
     edm::DetSetVector<StripDigiSimLink>::const_iterator isearch = stripdigisimlink->find(detID);
@@ -391,7 +387,7 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	charge+=amp[i];
 	if (amp[i] == 254 || amp[i] == 255) saturates = true;
       }
-      if (printOut > 0) {
+      if (printOut_ > 0) {
 	std::cout << "Cluster (width, first, last) = (" << clusiz << ", " << first << ", " << last-1 << ")  charge = " << charge;
 	if (saturates) std::cout << "  (saturates)";
 	std::cout << endl;
@@ -399,8 +395,9 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       float clusEloss = 0;
       int tkFlip = 0;
       int ovlap = 0;
-      std::vector<unsigned int> trackID;
+      std::vector<unsigned int> trackID;  trackID.clear();
 
+      // Set up to find matching simTracks and simHits
       std::vector<PSimHit> detIDhits;
       detIDhits.clear();
       std::vector<std::vector<PSimHit>::const_iterator> onClusterHits;
@@ -417,29 +414,33 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	  detIDhits.insert(detIDhits.end(),(itster->second).begin(),(itster->second).end());
 	}
       }
-      std::vector<PSimHit>::const_iterator simHitIter = detIDhits.begin();
-      std::vector<PSimHit>::const_iterator simHitIterEnd = detIDhits.end();
       std::vector<unsigned int> hitProcess;
       std::vector<int> hitPID;
       std::vector<float> trackCharge;
       std::vector<float> hitPmag;
       std::vector<float> hitPathLength;
 
+      // Look for a digisimlink matching this cluster
       if(isearch == stripdigisimlink->end()) {
 	clustersNoDigiSimLink++;
-	if (printOut > 0) std::cout << "No digisimlinks for this module" << std::endl;
+	if (printOut_ > 0) std::cout << "No digisimlinks for this module" << std::endl;
       } else {
 	int prevIdx = -1;
 	edm::DetSet<StripDigiSimLink> link_detset = (*isearch);
         for(edm::DetSet<StripDigiSimLink>::const_iterator linkiter = link_detset.data.begin();
 	    linkiter != link_detset.data.end(); linkiter++){
 	  int stripIdx;
-	  if (printOut > 3) std::cout << "    simLink channel = " << linkiter->channel() << endl;
+	  if (printOut_ > 3) printf("  %s%4d%s\n", "channel = ", linkiter->channel(), " before matching to cluster");
           if( (int)(linkiter->channel()) >= first  && (int)(linkiter->channel()) < last ){
-	    unsigned int currentCFPos = linkiter->CFposition()-1;
+	    // This digisimlink points to a strip in the current cluster
 // 	    unsigned int currentCFPos = linkiter->CFposition()-1 + subDetOffset;
 	    stripIdx = (int)linkiter->channel()-first;
 	    uint16_t rawAmpl = (uint16_t)(amp[stripIdx]);
+	    if (printOut_ > 1)
+	      printf("  %s%4d%s%8d%s%8d%s%8d%s%8.4f%s%5d\n", "channel = ", linkiter->channel(),
+		     " TrackID = ", linkiter->SimTrackId(), " EventID = ", linkiter->eventId().rawId(),
+		     " CFPos-1 = ", linkiter->CFposition()-1, " fraction = ", linkiter->fraction(),
+		     " rawAmpl = ", rawAmpl);
 
 	    unsigned int thisTrackID = linkiter->SimTrackId();
 	    // Does at least one strip have >1 track?
@@ -448,43 +449,41 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	    bool newTrack = true;
 	    if (std::find(trackID.begin(), trackID.end(), thisTrackID) != trackID.end()) newTrack = false;
 	    if (newTrack) {
+	      // This is the first time we've encountered this track (linked to this cluster)
 	      trackID.push_back(thisTrackID);
 
-	      // Find all the PSimHits associated with this track
-	      for (;simHitIter != simHitIterEnd; ++simHitIter) {
+	      // Find all the PSimHits associated with this simTrack
+	      for (std::vector<PSimHit>::const_iterator simHitIter = detIDhits.begin(); simHitIter != detIDhits.end(); ++simHitIter) {
 		const PSimHit ihit = *simHitIter;
 		unsigned int simHitid = ihit.trackId();
 		EncodedEventId simHiteid = ihit.eventId();
 	
 		if(simHitid == thisTrackID && simHiteid == linkiter->eventId()) {
-		  // Found a hit associated with this track
-		  bool newHit = true;
-		  if (std::find(onClusterHits.begin(), onClusterHits.end(), simHitIter) != onClusterHits.end()) newHit = false;
-		  if (newHit) {
-		    onClusterHits.push_back(simHitIter);
-		    float stripEloss = ihit.energyLoss();
-		    unsigned short thisHitProcess = ihit.processType();
-		    if (printOut > 1)
-		      printf("  %s%4d%s%5d%s%8d%s%8d%s%3d%s%8.4f\n", "CHANNEL = ", linkiter->channel(), " Ampl = ", rawAmpl,
-			     " TrackID = ", linkiter->SimTrackId(), " CFPos-1 = ", currentCFPos, " Process = ",
-			     thisHitProcess, " fraction = ", linkiter->fraction());
-		    clusEloss += stripEloss;
-		    hitProcess.push_back(thisHitProcess);
-		    hitPID.push_back(ihit.particleType());
-		    hitPmag.push_back(ihit.pabs());
-		    Local3DPoint entry = ihit.entryPoint();
-		    Local3DPoint exit = ihit.exitPoint();
-		    Local3DVector segment = exit - entry;
-		    hitPathLength.push_back(segment.mag());
-		    if (printOut > 2) std::cout << "                                       segment " << segment.mag() << std::endl;
-		  }
-		}
-	      }
+		  // Found a simHit associated with this simTrack
+		  onClusterHits.push_back(simHitIter);
+		  unsigned short thisHitProcess = ihit.processType();
+		  clusEloss += ihit.energyLoss();
+		  hitProcess.push_back(thisHitProcess);
+		  hitPID.push_back(ihit.particleType());
+		  hitPmag.push_back(ihit.pabs());
+		  Local3DPoint entry = ihit.entryPoint();
+		  Local3DPoint exit = ihit.exitPoint();
+		  Local3DVector segment = exit - entry;
+		  hitPathLength.push_back(segment.mag());
+		  if (printOut_ > 1) printf("    %s%3d%s%8.4f\n", "Process = ", ihit.processType(),
+					    ",                  segment = ", segment.mag());
+		}  // simHit matches current track
+	      } //  end traverse simHits
 	      trackCharge.push_back(linkiter->fraction()*rawAmpl);
 	    } else {
 	      for (unsigned int i=0; i<trackID.size(); ++i)
 		if (trackID[i] == thisTrackID)
 		  trackCharge[i] += linkiter->fraction()*rawAmpl;
+	    } // if newTrack ... else
+	    if (printOut_ > 2) {
+	      std::cout << "    Track charge accumulator = ";
+	      for (unsigned int it = 0; it < trackCharge.size(); ++it) printf("%7.1f  ", trackCharge[it]);
+	      std::cout << std::endl;
 	    }
 	    prevIdx = stripIdx;
 	  }  // DigiSimLink belongs to this cluster
@@ -494,8 +493,6 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 // RecoTracker/DeDx/python/dedxDiscriminator_Prod_cfi.py, line 12 -- MeVperADCStrip = cms.double(3.61e-06*250)
 
       // Fill the cluster Ntuple
-//         clusNtp_.init();
-//         fillClusNtp();
 	clusNtp_.subDet = subDet;
         clusNtp_.thickness = thickness;
         clusNtp_.width = amp.size();
@@ -522,7 +519,7 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	  allHtPathLength += hitPathLength[ih];
         clusNtp_.allHtPathLength = allHtPathLength;
 	clusNtp_.Ntp = trackID.size();
-	if (printOut > 0 && trackCharge.size() == 2)
+	if (printOut_ > 0 && trackCharge.size() == 2)
   	  cout << "  charge 1st, 2nd, dE/dx 1st, 2nd, asymmetry = "
                << trackCharge[0] << "  "
                << trackCharge[1] << "  "
@@ -586,7 +583,7 @@ ClusterNtuplizer::printDetInfo(uint32_t detID, const TrackerGeometry& tracker) {
   DetUnit = (const StripGeomDetUnit*) tracker.idToDetUnit(theDet);
   float thickness = 0;
   if (DetUnit != 0) thickness = DetUnit->surface().bounds().thickness();
-  std::cout << "detID = " << detID << ": subdet " << subDet;
+  std::cout << std::endl << "detID = " << detID << ": subdet " << subDet;
 //   enum SubDetector { UNKNOWN=0, TIB=3, TID=4, TOB=5, TEC=6 }
   if (subDet == int(StripSubdetector::TIB)) {
     TIBDetId tibId(detID);

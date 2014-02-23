@@ -88,7 +88,8 @@ process.makeNtuple = cms.EDAnalyzer('ClusterNtuplizer',
                                     clusterSourceLabel = cms.InputTag("siStripClusters"),
 #                                     clusterSourceLabel = cms.InputTag("siStripSplitClusters"),
 #                                     beamSpot = cms.InputTag("hltOfflineBeamSpot"),   # 4_4_0_pre9                             
-                                    beamSpot = cms.InputTag("offlineBeamSpot")      # 6_2_0
+                                    beamSpot = cms.InputTag("offlineBeamSpot"),      # 6_2_0
+                                    printOut = cms.untracked.int32(0)
 )
 
 ### conditions
@@ -97,7 +98,7 @@ process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 # process.GlobalTag.globaltag = 'PRE_ST62_V8::All'
 process.GlobalTag.globaltag = 'START62_V1::All'
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(100))
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1000))
 process.MessageLogger.cerr.FwkReport.reportEvery = 10
 #process.MessageLogger.cerr.threshold = 'Info'
 
