@@ -33,23 +33,23 @@ readFiles.extend( [
 #  '/store/relval/CMSSW_6_1_2/RelValQCD_Pt_3000_3500/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST61_V1-v1/00000/2082B7E8-BF9B-E211-9F1F-5404A63886D6.root',
 #  '/store/relval/CMSSW_6_1_2/RelValQCD_Pt_3000_3500/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST61_V1-v1/00000/12264B70-BE9B-E211-8435-003048F009C8.root'               ] );
 #
-       '/store/relval/CMSSW_6_2_0/RelValTTbar/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/00CB90CA-30EC-E211-B62B-003048F01080.root',
-       '/store/relval/CMSSW_6_2_0/RelValTTbar/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/34C2B010-31EC-E211-860A-003048D2BC6C.root',
-       '/store/relval/CMSSW_6_2_0/RelValTTbar/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/567BAD24-31EC-E211-A94B-003048D374CA.root',
-       '/store/relval/CMSSW_6_2_0/RelValTTbar/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/70DB230C-31EC-E211-B051-003048945474.root',
-       '/store/relval/CMSSW_6_2_0/RelValTTbar/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/78227A8F-35EC-E211-B3B9-02163E008D98.root',
-       '/store/relval/CMSSW_6_2_0/RelValTTbar/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/7CC7F7E5-30EC-E211-87BE-003048CFC64A.root',
-       '/store/relval/CMSSW_6_2_0/RelValTTbar/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/A8482AE3-30EC-E211-BF92-002481E0E5E6.root',
-       '/store/relval/CMSSW_6_2_0/RelValTTbar/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/D46345E0-30EC-E211-A57C-003048F1C53C.root',
-       '/store/relval/CMSSW_6_2_0/RelValTTbar/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/F027A10D-31EC-E211-AC59-5404A63886BE.root' ] );
+#        '/store/relval/CMSSW_6_2_0/RelValTTbar/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/00CB90CA-30EC-E211-B62B-003048F01080.root',
+#        '/store/relval/CMSSW_6_2_0/RelValTTbar/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/34C2B010-31EC-E211-860A-003048D2BC6C.root',
+#        '/store/relval/CMSSW_6_2_0/RelValTTbar/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/567BAD24-31EC-E211-A94B-003048D374CA.root',
+#        '/store/relval/CMSSW_6_2_0/RelValTTbar/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/70DB230C-31EC-E211-B051-003048945474.root',
+#        '/store/relval/CMSSW_6_2_0/RelValTTbar/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/78227A8F-35EC-E211-B3B9-02163E008D98.root',
+#        '/store/relval/CMSSW_6_2_0/RelValTTbar/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/7CC7F7E5-30EC-E211-87BE-003048CFC64A.root',
+#        '/store/relval/CMSSW_6_2_0/RelValTTbar/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/A8482AE3-30EC-E211-BF92-002481E0E5E6.root',
+#        '/store/relval/CMSSW_6_2_0/RelValTTbar/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/D46345E0-30EC-E211-A57C-003048F1C53C.root',
+#        '/store/relval/CMSSW_6_2_0/RelValTTbar/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/F027A10D-31EC-E211-AC59-5404A63886BE.root' ] );
 #
-#        '/store/relval/CMSSW_6_2_0/RelValQCD_Pt_3000_3500/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/AA6688B7-33EC-E211-B9F1-C86000151BDE.root',
-#        '/store/relval/CMSSW_6_2_0/RelValQCD_Pt_3000_3500/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/06EBC486-33EC-E211-BD86-003048D3734E.root',
-#        '/store/relval/CMSSW_6_2_0/RelValQCD_Pt_3000_3500/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/5839CE1A-3CEC-E211-9C9F-5404A640A63D.root',
-#        '/store/relval/CMSSW_6_2_0/RelValQCD_Pt_3000_3500/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/6066095A-32EC-E211-A96F-0025B3203690.root',
-#        '/store/relval/CMSSW_6_2_0/RelValQCD_Pt_3000_3500/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/747E0BD6-32EC-E211-A660-C860001BD920.root',
-#        '/store/relval/CMSSW_6_2_0/RelValQCD_Pt_3000_3500/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/7A2D56E0-32EC-E211-AF47-C860001BD8D4.root',
-#        '/store/relval/CMSSW_6_2_0/RelValQCD_Pt_3000_3500/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/8AAF3C3F-33EC-E211-A579-003048F17CCC.root' ] );
+       '/store/relval/CMSSW_6_2_0/RelValQCD_Pt_3000_3500/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/AA6688B7-33EC-E211-B9F1-C86000151BDE.root',
+       '/store/relval/CMSSW_6_2_0/RelValQCD_Pt_3000_3500/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/06EBC486-33EC-E211-BD86-003048D3734E.root',
+       '/store/relval/CMSSW_6_2_0/RelValQCD_Pt_3000_3500/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/5839CE1A-3CEC-E211-9C9F-5404A640A63D.root',
+       '/store/relval/CMSSW_6_2_0/RelValQCD_Pt_3000_3500/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/6066095A-32EC-E211-A96F-0025B3203690.root',
+       '/store/relval/CMSSW_6_2_0/RelValQCD_Pt_3000_3500/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/747E0BD6-32EC-E211-A660-C860001BD920.root',
+       '/store/relval/CMSSW_6_2_0/RelValQCD_Pt_3000_3500/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/7A2D56E0-32EC-E211-AF47-C860001BD8D4.root',
+       '/store/relval/CMSSW_6_2_0/RelValQCD_Pt_3000_3500/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/8AAF3C3F-33EC-E211-A579-003048F17CCC.root' ] );
 #
 #  This one file is the single mu
 #        '/store/relval/CMSSW_6_2_0/RelValSingleMuPt100/GEN-SIM-DIGI-RAW-HLTDEBUG/PRE_ST62_V8-v3/00000/70297520-46EC-E211-87C0-001E672CC4C1.root' ] );
@@ -71,6 +71,11 @@ process = cms.Process("makeNtuple")
 # import of standard configurations
 process.load('Configuration.StandardSequences.Services_cff')
 process.load('FWCore.MessageService.MessageLogger_cfi')
+
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1000))
+process.MessageLogger.cerr.FwkReport.reportEvery = 10
+#process.MessageLogger.cerr.threshold = 'Info'
+
 process.load('Configuration.EventContent.EventContent_cff')
 process.load('SimGeneral.MixingModule.mixNoPU_cfi')
 process.load('Configuration.StandardSequences.GeometryDB_cff')
@@ -80,6 +85,24 @@ process.load('Configuration.StandardSequences.RawToDigi_cff')
 process.load('Configuration.StandardSequences.Reconstruction_cff')
 process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load("RecoTracker.TrackProducer.TrackRefitters_cff")
+
+# Need to override default suppression of crossing frames, as of CMSSW_6_2_?
+# from SimGeneral.MixingModule.fullMixCustomize_cff import setCrossingFrameOn 
+# process = setCrossingFrameOn(process)
+# Customized for our needs:
+process.mix.mixObjects.mixSH.crossingFrames = cms.untracked.vstring(
+#     'TrackerHitsPixelBarrelHighTof',
+#     'TrackerHitsPixelBarrelLowTof',
+#     'TrackerHitsPixelEndcapHighTof',
+#     'TrackerHitsPixelEndcapLowTof',
+    'TrackerHitsTECHighTof',
+    'TrackerHitsTECLowTof',
+    'TrackerHitsTIBHighTof',
+    'TrackerHitsTIBLowTof',
+    'TrackerHitsTIDHighTof',
+    'TrackerHitsTIDLowTof',
+    'TrackerHitsTOBHighTof',
+    'TrackerHitsTOBLowTof')
 
 # Switch to split clusters (here and in process.makeNtuple)
 # process.siStripMatchedRecHits.ClusterProducer = 'siStripSplitClusters'
@@ -97,10 +120,6 @@ process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 # process.GlobalTag.globaltag = 'PRE_ST61_V1::All'
 # process.GlobalTag.globaltag = 'PRE_ST62_V8::All'
 process.GlobalTag.globaltag = 'START62_V1::All'
-
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1000))
-process.MessageLogger.cerr.FwkReport.reportEvery = 10
-#process.MessageLogger.cerr.threshold = 'Info'
 
 process.source = source
 
