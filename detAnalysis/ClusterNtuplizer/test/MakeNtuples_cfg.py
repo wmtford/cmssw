@@ -72,8 +72,8 @@ process = cms.Process("makeNtuple")
 process.load('Configuration.StandardSequences.Services_cff')
 process.load('FWCore.MessageService.MessageLogger_cfi')
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1000))
-process.MessageLogger.cerr.FwkReport.reportEvery = 10
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(100))
+process.MessageLogger.cerr.FwkReport.reportEvery = 1
 #process.MessageLogger.cerr.threshold = 'Info'
 
 process.load('Configuration.EventContent.EventContent_cff')
@@ -112,7 +112,8 @@ process.makeNtuple = cms.EDAnalyzer('ClusterNtuplizer',
 #                                     clusterSourceLabel = cms.InputTag("siStripSplitClusters"),
 #                                     beamSpot = cms.InputTag("hltOfflineBeamSpot"),   # 4_4_0_pre9                             
                                     beamSpot = cms.InputTag("offlineBeamSpot"),      # 6_2_0
-                                    printOut = cms.untracked.int32(0)
+                                    printOut = cms.untracked.int32(0),
+                                    useCrossingFrames = cms.untracked.bool(False)
 )
 
 ### conditions

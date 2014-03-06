@@ -83,7 +83,6 @@ private:
   virtual void analyze(const edm::Event&, const edm::EventSetup&);
   virtual void endJob();
   void printDetInfo(uint32_t detID, const TrackerGeometry& tracker);
-//   void fillClusNtp(TrackingParticle* tp, double angNnbr, int TrackNumber, int found, int* NinCone);
 
       // ----------member data ---------------------------
 
@@ -96,12 +95,10 @@ private:
   edm::InputTag theClusterSourceLabel;
   edm::InputTag bsSrc_;
   int printOut_;
+  bool useCrossingFrames_;
 
   std::vector<const SiStripCluster*> vPSiStripCluster;
 
-  edm::Handle<CrossingFrame<PSimHit> > cf_simhit;
-  std::vector<const CrossingFrame<PSimHit> *> cf_simhitvec;
-//   MixCollection<PSimHit>  TrackerHits;
   typedef std::vector<std::string> vstring;
   vstring trackerContainers;
   edm::Handle< edm::DetSetVector<StripDigiSimLink> >  stripdigisimlink;
@@ -191,7 +188,8 @@ ClusterNtuplizer::ClusterNtuplizer(const edm::ParameterSet& iConfig):
  conf_(iConfig),
  theClusterSourceLabel(iConfig.getParameter<edm::InputTag>( "clusterSourceLabel" )),
  bsSrc_(iConfig.getParameter<edm::InputTag>("beamSpot")),
- printOut_(iConfig.getUntrackedParameter<int>("printOut"))
+ printOut_(iConfig.getUntrackedParameter<int>("printOut")),
+ useCrossingFrames_(iConfig.getUntrackedParameter<bool>("useCrossingFrames"))
 
 {
    //now do what ever initialization is needed
@@ -221,8 +219,6 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
   if (printOut_ > 0) std::cout << std::endl;
   trackerContainers.clear();
-  cf_simhit.clear();
-  cf_simhitvec.clear();
 
   evCnt_++;
 
@@ -231,7 +227,7 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   const reco::BeamSpot& bs = *recoBeamSpotHandle;      
 
   edm::Handle<reco::VertexCollection>  pixelVertexCollectionHandle;
-//   iEvent.getByLabel(pixelVertexLabel_, pixelVertexCollectionHandle);
+//   iEvent.getByLabel(pixelVertexLabel_, pixelVertexCollectionndle);
   iEvent.getByLabel("pixelVertices", pixelVertexCollectionHandle);
   const reco::VertexCollection pixelVertexColl = *(pixelVertexCollectionHandle.product());
 //   nPixelVertices_ = pixelVertexColl.size();
@@ -270,51 +266,89 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   }
   if (printOut_ > 0) std::cout << "  zv = " << zv << " +/- " << zverr << std::endl;
 
-  //
-  // Take by default all tracker SimHits
-  //
-  trackerContainers.push_back("g4SimHitsTrackerHitsTIBLowTof");
-  trackerContainers.push_back("g4SimHitsTrackerHitsTIBHighTof");
-  trackerContainers.push_back("g4SimHitsTrackerHitsTIDLowTof");
-  trackerContainers.push_back("g4SimHitsTrackerHitsTIDHighTof");
-  trackerContainers.push_back("g4SimHitsTrackerHitsTOBLowTof");
-  trackerContainers.push_back("g4SimHitsTrackerHitsTOBHighTof");
-  trackerContainers.push_back("g4SimHitsTrackerHitsTECLowTof");
-  trackerContainers.push_back("g4SimHitsTrackerHitsTECHighTof");
-  //  trackerContainers.push_back("g4SimHitsTrackerHitsPixelBarrelLowTof");
-  //  trackerContainers.push_back("g4SimHitsTrackerHitsPixelBarrelHighTof");
-  //  trackerContainers.push_back("g4SimHitsTrackerHitsPixelEndcapLowTof");
-  //  trackerContainers.push_back("g4SimHitsTrackerHitsPixelEndcapHighTof");
-
+  if (useCrossingFrames_) {
+    trackerContainers.push_back("g4SimHitsTrackerHitsTIBLowTof");
+    trackerContainers.push_back("g4SimHitsTrackerHitsTIBHighTof");
+    trackerContainers.push_back("g4SimHitsTrackerHitsTIDLowTof");
+    trackerContainers.push_back("g4SimHitsTrackerHitsTIDHighTof");
+    trackerContainers.push_back("g4SimHitsTrackerHitsTOBLowTof");
+    trackerContainers.push_back("g4SimHitsTrackerHitsTOBHighTof");
+    trackerContainers.push_back("g4SimHitsTrackerHitsTECLowTof");
+    trackerContainers.push_back("g4SimHitsTrackerHitsTECHighTof");
+//     trackerContainers.push_back("g4SimHitsTrackerHitsPixelBarrelLowTof");
+//     trackerContainers.push_back("g4SimHitsTrackerHitsPixelBarrelHighTof");
+//     trackerContainers.push_back("g4SimHitsTrackerHitsPixelEndcapLowTof");
+//     trackerContainers.push_back("g4SimHitsTrackerHitsPixelEndcapHighTof");
+  } else {
+    trackerContainers.push_back("TrackerHitsTIBLowTof");
+    trackerContainers.push_back("TrackerHitsTIBHighTof");
+    trackerContainers.push_back("TrackerHitsTIDLowTof");
+    trackerContainers.push_back("TrackerHitsTIDHighTof");
+    trackerContainers.push_back("TrackerHitsTOBLowTof");
+    trackerContainers.push_back("TrackerHitsTOBHighTof");
+    trackerContainers.push_back("TrackerHitsTECLowTof");
+    trackerContainers.push_back("TrackerHitsTECHighTof");
+//     trackerContainers.push_back("TrackerHitsPixelBarrelLowTof");
+//     trackerContainers.push_back("TrackerHitsPixelBarrelHighTof");
+//     trackerContainers.push_back("TrackerHitsPixelEndcapLowTof");
+//     trackerContainers.push_back("TrackerHitsPixelEndcapHighTof");
+  }
 
 //   unsigned simHitCounter(0);
 //   std::vector<std::pair<int,int>> simHitMap;
 //   simHitMap.clear();
-  for(uint32_t i = 0; i< trackerContainers.size(); i++){
-    iEvent.getByLabel("mix", trackerContainers[i], cf_simhit);
-    cf_simhitvec.push_back(cf_simhit.product());
+//   for(uint32_t i = 0; i< trackerContainers.size(); i++){
+//     iEvent.getByLabel("mix", trackerContainers[i], cf_simhit);
+//     cf_simhitvec.push_back(cf_simhit.product());
 //     std::cout << i << "  " << cf_simhit->getNrSignals() << std::endl;
 //     if (i == 0) simHitMap.push_back(std::make_pair(StripSubdetector::TIB, simHitCounter));
 //     else if (i == 2) simHitMap.push_back(std::make_pair(StripSubdetector::TID, simHitCounter));
 //     else if (i == 4) simHitMap.push_back(std::make_pair(StripSubdetector::TOB, simHitCounter));
 //     else if (i == 6) simHitMap.push_back(std::make_pair(StripSubdetector::TEC, simHitCounter));
 //     simHitCounter += cf_simhit->getNrSignals();
-  }
+//   }
 //   std::cout << "simHitMap = " << std::endl;
 //   for (std::vector<std::pair<int,int>>::iterator it = simHitMap.begin(); it != simHitMap.end(); ++it)
 //     std::cout << ' ' << (*it).first << ", " << (*it).second << std::endl;
   
-  std::auto_ptr<MixCollection<PSimHit> > allTrackerHits(new MixCollection<PSimHit>(cf_simhitvec));
-//   TrackerHits = (*allTrackerHits);
+//   std::auto_ptr<MixCollection<PSimHit> > allTrackerHits(new MixCollection<PSimHit>(cf_simhitvec));
 // cite:  SimTracker/SiStripDigitizer/plugins/DigiSimLinkProducer.cc
 //   std::cout << "TrackerHits has " << TrackerHits.sizeSignal() << " signal and " << TrackerHits.sizePileup() << " pileup hits " << std::endl;
     
-    //Loop on PSimHit and generate the detID -> PSimHit vector map
+  //Loop on PSimHit and generate the detID -> PSimHit vector map
   SimHitMap.clear();
-  MixCollection<PSimHit>::iterator isim;
-  for (isim=allTrackerHits->begin(); isim!= allTrackerHits->end();isim++) {
-    SimHitMap[(*isim).detUnitId()].push_back((*isim));
-  }
+
+  for(auto const& trackerContainer : trackerContainers) {
+
+    //  Extract simhits from the containers and build the map to detID
+    if (useCrossingFrames_) {
+
+      // From Danek, adapted for crossing frames
+      edm::Handle<CrossingFrame<PSimHit> > cf_simhit;
+      edm::InputTag tag("mix", trackerContainer);
+      iEvent.getByLabel(tag, cf_simhit);
+      std::auto_ptr<MixCollection<PSimHit> > thisContainerHits(new MixCollection<PSimHit>(cf_simhit.product()));
+
+      for (MixCollection<PSimHit>::iterator isim = thisContainerHits->begin();
+	   isim != thisContainerHits->end(); isim++) {
+	SimHitMap[(*isim).detUnitId()].push_back((*isim));
+      }
+
+    } else {
+
+      // From Danek, uses simhits, not crossing frames
+      edm::Handle<std::vector<PSimHit> > simHits;
+      edm::InputTag tag("g4SimHits", trackerContainer);
+      iEvent.getByLabel(tag, simHits);
+      for (std::vector<PSimHit>::const_iterator isim = simHits->begin();
+	   isim != simHits->end(); isim++) {
+	SimHitMap[(*isim).detUnitId()].push_back((*isim));
+      }
+
+    }  // if (useCrossingFrames_)
+
+    //std::cout<<SimHitMap.size()<<std::endl;
+  } // travserse containers
 
   /////////////////////////
   // Cluster collections //
