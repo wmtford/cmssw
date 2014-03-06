@@ -227,7 +227,6 @@ ClusterNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   const reco::BeamSpot& bs = *recoBeamSpotHandle;      
 
   edm::Handle<reco::VertexCollection>  pixelVertexCollectionHandle;
-//   iEvent.getByLabel(pixelVertexLabel_, pixelVertexCollectionndle);
   iEvent.getByLabel("pixelVertices", pixelVertexCollectionHandle);
   const reco::VertexCollection pixelVertexColl = *(pixelVertexCollectionHandle.product());
 //   nPixelVertices_ = pixelVertexColl.size();
