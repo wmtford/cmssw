@@ -34,6 +34,10 @@ class OldThreeThresholdAlgorithm final : public StripClusterizerAlgorithm {
   //  void setSiStripNoiseService( SiStripNoiseService* in ){ SiStripNoiseService_=in;}
   void clusterizeDetUnit(const edm::DetSet<SiStripDigi>    & digis, edmNew::DetSetVector<SiStripCluster>::FastFiller & output);
   void clusterizeDetUnit(const edmNew::DetSet<SiStripDigi> & digis, edmNew::DetSetVector<SiStripCluster>::FastFiller & output);
+  void clusterizeDetUnit(const edm::DetSet<SiStripDigi>    & digis, edmNew::DetSetVector<SiStripCluster>::FastFiller & output, const TrackerHitAssociator&)
+  {clusterizeDetUnit(digis, output);}  // Truth test for merged cluster not implemented for this version
+  void clusterizeDetUnit(const edmNew::DetSet<SiStripDigi> & digis, edmNew::DetSetVector<SiStripCluster>::FastFiller & output, const TrackerHitAssociator&)
+  {clusterizeDetUnit(digis, output);}
 
   void initialize(const edm::EventSetup&);
 

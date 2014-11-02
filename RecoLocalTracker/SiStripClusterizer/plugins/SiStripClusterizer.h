@@ -25,6 +25,7 @@ private:
   typedef edm::EDGetTokenT< edm::DetSetVector<SiStripDigi> > token_t;
   typedef std::vector<token_t> token_v;
   token_v inputTokens;
+  typedef std::vector<std::string> vstring;
 
 };
 

@@ -3,6 +3,8 @@
 #include "RecoLocalTracker/SiStripClusterizer/interface/StripClusterizerAlgorithm.h"
 #include "RecoLocalTracker/SiStripClusterizer/interface/SiStripApvShotCleaner.h"
 
+class DetId;
+
 class ThreeThresholdAlgorithm final : public StripClusterizerAlgorithm {
 
   friend class StripClusterizerAlgorithmFactory;
@@ -11,6 +13,8 @@ class ThreeThresholdAlgorithm final : public StripClusterizerAlgorithm {
 
   void clusterizeDetUnit(const    edm::DetSet<SiStripDigi> &, output_t::FastFiller &);
   void clusterizeDetUnit(const edmNew::DetSet<SiStripDigi> &, output_t::FastFiller &);
+  void clusterizeDetUnit(const    edm::DetSet<SiStripDigi> &, output_t::FastFiller &, const TrackerHitAssociator&);
+  void clusterizeDetUnit(const edmNew::DetSet<SiStripDigi> &, output_t::FastFiller &, const TrackerHitAssociator&);
 
   bool stripByStripBegin(uint32_t id);
 
@@ -44,6 +48,7 @@ class ThreeThresholdAlgorithm final : public StripClusterizerAlgorithm {
  private:
 
   template<class T> void clusterizeDetUnit_(const T&, output_t::FastFiller&);
+  template<class T> void clusterizeDetUnit_(const T&, output_t::FastFiller&, const TrackerHitAssociator&);
   ThreeThresholdAlgorithm(float, float, float, unsigned, unsigned, unsigned, std::string qualityLabel,
 			  bool setDetId, bool removeApvShots=false);
 
@@ -60,6 +65,7 @@ class ThreeThresholdAlgorithm final : public StripClusterizerAlgorithm {
 
   //state modification methods
   template<class T> void endCandidate(T&);
+  template<class T> void endCandidate(T&, DetId const &, TrackerHitAssociator const &);
   void clearCandidate() { candidateLacksSeed = true;  noiseSquared = 0;  ADCs.clear();}
   void addToCandidate(const SiStripDigi& digi) { addToCandidate(digi.strip(),digi.adc());}
   void addToCandidate(uint16_t strip, uint8_t adc);

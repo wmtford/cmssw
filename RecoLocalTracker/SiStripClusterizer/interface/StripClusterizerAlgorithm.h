@@ -3,6 +3,7 @@
 
 namespace edm{class EventSetup;}
 class SiStripDigi;
+class TrackerHitAssociator;
 #include "DataFormats/SiStripCluster/interface/SiStripCluster.h"
 #include "DataFormats/Common/interface/DetSetVector.h"
 #include "DataFormats/Common/interface/DetSetVectorNew.h"
@@ -29,6 +30,10 @@ class StripClusterizerAlgorithm {
   void clusterize(const edmNew::DetSetVector<SiStripDigi> &, output_t &);
   virtual void clusterizeDetUnit(const    edm::DetSet<SiStripDigi> &, output_t::FastFiller &) = 0;
   virtual void clusterizeDetUnit(const edmNew::DetSet<SiStripDigi> &, output_t::FastFiller &) = 0;
+  void clusterize(const    edm::DetSetVector<SiStripDigi> &, output_t &, const TrackerHitAssociator &);
+  void clusterize(const edmNew::DetSetVector<SiStripDigi> &, output_t &, const TrackerHitAssociator &);
+  virtual void clusterizeDetUnit(const    edm::DetSet<SiStripDigi> &, output_t::FastFiller &, const TrackerHitAssociator &) = 0;
+  virtual void clusterizeDetUnit(const edmNew::DetSet<SiStripDigi> &, output_t::FastFiller &, const TrackerHitAssociator &) = 0;
 
   //HLT stripByStrip interface
   virtual bool stripByStripBegin(uint32_t id) = 0;
@@ -71,6 +76,14 @@ class StripClusterizerAlgorithm {
     for(typename T::const_iterator it = input.begin(); it!=input.end(); it++) {
       output_t::FastFiller ff(output, it->detId());	
       clusterizeDetUnit(*it, ff);	
+      if(ff.empty()) ff.abort();	
+    }	
+  }
+
+  template<class T> void clusterize_(const T& input, output_t& output, TrackerHitAssociator const & associator) {
+    for(typename T::const_iterator it = input.begin(); it!=input.end(); it++) {
+      output_t::FastFiller ff(output, it->detId());	
+      clusterizeDetUnit(*it, ff, associator);	
       if(ff.empty()) ff.abort();	
     }	
   }

@@ -1,4 +1,6 @@
 #include "RecoLocalTracker/SiStripClusterizer/interface/ThreeThresholdAlgorithm.h"
+#include "SimTracker/TrackerHitAssociation/interface/TrackerHitAssociator.h"
+#include "DataFormats/DetId/interface/DetId.h"
 #include "DataFormats/SiStripDigi/interface/SiStripDigi.h"
 #include "DataFormats/SiStripCluster/interface/SiStripCluster.h"
 #include <cmath>
@@ -48,6 +50,35 @@ clusterizeDetUnit_(const digiDetSet& digis, output_t::FastFiller& output) {
   }
 }
 
+template<class digiDetSet>
+inline
+void ThreeThresholdAlgorithm::
+clusterizeDetUnit_(const digiDetSet& digis, output_t::FastFiller& output, const TrackerHitAssociator& associator) {
+  if(isModuleBad(digis.detId())) return;
+  if (!setDetId( digis.detId() )) return;
+
+#ifdef EDM_ML_DEBUG
+  if(!isModuleUsable(digis.detId() )) 
+    LogWarning("ThreeThresholdAlgorithm") << " id " << digis.detId() << " not usable???" << std::endl;
+#endif
+
+  
+  typename digiDetSet::const_iterator  
+    scan( digis.begin() ), 
+    end(  digis.end() );
+
+  if(RemoveApvShots){
+    ApvCleaner.clean(digis,scan,end);
+  }
+
+  clearCandidate();
+  while( scan != end ) {
+    while( scan != end  && !candidateEnded( scan->strip() ) ) 
+      addToCandidate(*scan++);
+    endCandidate(output, DetId(digis.detId()), associator);
+  }
+}
+
 inline 
 bool ThreeThresholdAlgorithm::
 candidateEnded(const uint16_t& testStrip) const {
@@ -88,6 +119,23 @@ endCandidate(T& out) {
   clearCandidate();  
 }
 
+template <class T>
+inline
+void ThreeThresholdAlgorithm::
+endCandidate(T& out, const DetId& detid, const TrackerHitAssociator& associator) {
+  if(candidateAccepted()) {
+    applyGains();
+    appendBadNeighbors();
+    SiStripCluster clust(firstStrip(), ADCs.begin(), ADCs.end());
+    std::vector<SimHitIdpr> simtrackid;
+    associator.associateSimpleRecHitCluster(&clust, detid, simtrackid);
+    // std::cout << simtrackid.size() << " No. of simTracks" << std::endl;
+    if (simtrackid.size() > 1) clust.setSplitClusterError(-1.0);
+    out.push_back(clust);
+  }
+  clearCandidate();  
+}
+
 inline 
 bool ThreeThresholdAlgorithm::
 candidateAccepted() const {
@@ -124,6 +172,8 @@ appendBadNeighbors() {
 
 void ThreeThresholdAlgorithm::clusterizeDetUnit(const    edm::DetSet<SiStripDigi>& digis, output_t::FastFiller& output) {clusterizeDetUnit_(digis,output);}
 void ThreeThresholdAlgorithm::clusterizeDetUnit(const edmNew::DetSet<SiStripDigi>& digis, output_t::FastFiller& output) {clusterizeDetUnit_(digis,output);}
+void ThreeThresholdAlgorithm::clusterizeDetUnit(const    edm::DetSet<SiStripDigi>& digis, output_t::FastFiller& output, const TrackerHitAssociator& associator) {clusterizeDetUnit_(digis,output,associator);}
+void ThreeThresholdAlgorithm::clusterizeDetUnit(const edmNew::DetSet<SiStripDigi>& digis, output_t::FastFiller& output, const TrackerHitAssociator& associator) {clusterizeDetUnit_(digis,output,associator);}
 
 inline
 bool ThreeThresholdAlgorithm::

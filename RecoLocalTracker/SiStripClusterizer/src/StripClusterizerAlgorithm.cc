@@ -1,5 +1,7 @@
 #include "RecoLocalTracker/SiStripClusterizer/interface/StripClusterizerAlgorithm.h"
 
+// #include "SimTracker/TrackerHitAssociation/interface/TrackerHitAssociator.h"
+
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "CondFormats/DataRecord/interface/SiStripNoisesRcd.h"
 #include "CalibTracker/Records/interface/SiStripGainRcd.h"
@@ -190,6 +192,8 @@ setDetId(const uint32_t id) {
 
 void StripClusterizerAlgorithm::clusterize(const   edm::DetSetVector<SiStripDigi>& input,  output_t& output) {clusterize_(input, output);}
 void StripClusterizerAlgorithm::clusterize(const edmNew::DetSetVector<SiStripDigi>& input, output_t& output) {clusterize_(input, output);}
+void StripClusterizerAlgorithm::clusterize(const   edm::DetSetVector<SiStripDigi>& input,  output_t& output, const TrackerHitAssociator& associator) {clusterize_(input, output, associator);}
+void StripClusterizerAlgorithm::clusterize(const edmNew::DetSetVector<SiStripDigi>& input, output_t& output, const TrackerHitAssociator& associator) {clusterize_(input, output, associator);}
 
 StripClusterizerAlgorithm::
 InvalidChargeException::InvalidChargeException(const SiStripDigi& digi)
