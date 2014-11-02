@@ -65,7 +65,7 @@ class ThreeThresholdAlgorithm final : public StripClusterizerAlgorithm {
 
   //state modification methods
   template<class T> void endCandidate(T&);
-  template<class T> void endCandidate(T&, DetId const &, TrackerHitAssociator const &);
+  template<class T> void endCandidate(T&, const DetId&, const TrackerHitAssociator&);
   void clearCandidate() { candidateLacksSeed = true;  noiseSquared = 0;  ADCs.clear();}
   void addToCandidate(const SiStripDigi& digi) { addToCandidate(digi.strip(),digi.adc());}
   void addToCandidate(uint16_t strip, uint8_t adc);

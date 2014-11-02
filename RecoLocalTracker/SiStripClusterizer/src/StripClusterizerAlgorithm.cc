@@ -1,7 +1,5 @@
 #include "RecoLocalTracker/SiStripClusterizer/interface/StripClusterizerAlgorithm.h"
 
-// #include "SimTracker/TrackerHitAssociation/interface/TrackerHitAssociator.h"
-
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "CondFormats/DataRecord/interface/SiStripNoisesRcd.h"
 #include "CalibTracker/Records/interface/SiStripGainRcd.h"
