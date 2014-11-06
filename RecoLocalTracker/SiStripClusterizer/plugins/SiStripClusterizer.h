@@ -19,9 +19,14 @@ public:
 
 private:
 
+  edm::ParameterSet conf_;
   template<class T> bool findInput(const edm::EDGetTokenT<T>&, edm::Handle<T>&, const edm::Event&);
   const std::vector<edm::InputTag> inputTags;
   std::auto_ptr<StripClusterizerAlgorithm> algorithm;
+  void refineCluster(const edm::EventSetup& es,
+		     const edm::Handle< edm::DetSetVector<SiStripDigi> >& input,
+		     std::auto_ptr< edmNew::DetSetVector<SiStripCluster> >& output,
+		     const float& occupancyThreshold);
   typedef edm::EDGetTokenT< edm::DetSetVector<SiStripDigi> > token_t;
   typedef std::vector<token_t> token_v;
   token_v inputTokens;
