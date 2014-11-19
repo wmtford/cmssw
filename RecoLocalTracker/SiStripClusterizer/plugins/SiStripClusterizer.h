@@ -8,6 +8,7 @@
 #include "FWCore/Utilities/interface/InputTag.h"
 #include "CalibTracker/Records/interface/SiStripDetCablingRcd.h"
 #include "CalibTracker/Records/interface/SiStripQualityRcd.h"
+#include "SimTracker/TrackerHitAssociation/interface/TrackerHitAssociator.h"
 
 #include <vector>
 #include <memory>
@@ -37,6 +38,7 @@ private:
 
   edm::ESHandle<SiStripDetCabling> SiStripDetCabling_;
   edm::ESHandle<SiStripQuality> quality_;
+  std::shared_ptr<TrackerHitAssociator> associator_;
 };
 
 #endif

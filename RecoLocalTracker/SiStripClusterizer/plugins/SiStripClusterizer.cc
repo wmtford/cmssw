@@ -30,6 +30,9 @@ produce(edm::Event& event, const edm::EventSetup& es)  {
 
   algorithm->initialize(es);  
 
+  bool useAssociator = confClusterizer_.existsAs<bool>("useMCtruth") ? confClusterizer_.getParameter<bool>("useMCtruth") : false;
+  if (useAssociator) associator_.reset(new TrackerHitAssociator(event, confClusterizer_));
+
   BOOST_FOREACH( const edm::EDGetTokenT< edm::DetSetVector<SiStripDigi> >& token, inputTokens) {
     if(      findInput( token, inputOld, event) ) {
       algorithm->clusterize(*inputOld, *output);
@@ -72,11 +75,23 @@ refineCluster(const edm::Handle< edm::DetSetVector<SiStripDigi> >& input,
     edm::DetSetVector<SiStripDigi>::const_iterator digis = input->find(detId);
     if (digis != input->end()) {
       int ndigi = digis->size();
+      int nmergedclust = 0;
       for (edmNew::DetSet<SiStripCluster>::iterator clust = det->begin(); clust != det->end(); clust++) {
-	if (ndigi > occupancyThreshold_*nchannreal && clust->amplitudes().size() >= widthThreshold_) clust->setMerged(true);
-	else clust->setMerged(false);
+        if (associator_ != 0) {
+          std::vector<SimHitIdpr> simtrackid;
+          associator_->associateSimpleRecHitCluster(clust, DetId(detId), simtrackid);
+          if (simtrackid.size() > 1) {
+            nmergedclust++;
+            clust->setMerged(true);
+          } else {
+            clust->setMerged(false);
+          }
+        } else {
+          if (ndigi > occupancyThreshold_*nchannreal && clust->amplitudes().size() >= widthThreshold_) clust->setMerged(true);
+          else clust->setMerged(false);
+        }
       }
-      // std::cout << "Sensor:strips_occStrips_clust " << nchannreal << " " << ndigi << " " << det->size() << std::endl;
+      // std::cout << "Sensor:strips_occStrips_clust_merged " << nchannreal << " " << ndigi << " " << det->size() << " " << nmergedclust << std::endl;
     }
   }  // traverse sensors
 }
