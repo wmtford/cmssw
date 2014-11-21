@@ -61,6 +61,8 @@ refineCluster(const edm::Handle< edm::DetSetVector<SiStripDigi> >& input,
 	      std::auto_ptr< edmNew::DetSetVector<SiStripCluster> >& output) {
   if (input->size() == 0) return;
 
+  uint16_t bwNominal = 25;
+
   // Flag merge-prone clusters for relaxed CPE errors
   // Criterion is sensor occupancy and cluster width exceeding thresholds
 
@@ -68,15 +70,30 @@ refineCluster(const edm::Handle< edm::DetSetVector<SiStripDigi> >& input,
     uint32_t detId = det->id();
     // Find the number of good strips in this sensor
     int nchannideal = SiStripDetCabling_->nApvPairs(detId) * 2 * 128;
-    int nchannreal = 0;
-    for(int strip = 0; strip < nchannideal; ++strip)
-      if(!quality_->IsStripBad(detId,strip)) ++nchannreal;
+    // int nchannreal = 0;
+    // for(int strip = 0; strip < nchannideal; ++strip)
+    //   if(!quality_->IsStripBad(detId,strip)) ++nchannreal;
 
     edm::DetSetVector<SiStripDigi>::const_iterator digis = input->find(detId);
     if (digis != input->end()) {
-      int ndigi = digis->size();
+      // int ndigi = digis->size();
       int nmergedclust = 0;
       for (edmNew::DetSet<SiStripCluster>::iterator clust = det->begin(); clust != det->end(); clust++) {
+	uint16_t cluststart = clust->firstStrip();
+	uint16_t clustend = cluststart + clust->amplitudes().size();
+	uint16_t lowbandstart = std::max(0, cluststart - bwNominal);
+	uint16_t lowbandend = cluststart;
+	uint16_t highbandstart = clustend;
+	uint16_t highbandend = std::min(nchannideal, clustend + bwNominal);
+	int NinBand = 0;
+	int AllinBand = lowbandend - lowbandstart + highbandend - highbandstart;
+	for (edm::DetSet<SiStripDigi>::const_iterator digi = digis->begin(); digi != digis->end(); digi++) {
+	  uint16_t theStrip = digi->strip();
+	  if ((theStrip >= lowbandstart && theStrip < lowbandend) || (theStrip >= highbandstart && theStrip < highbandend)) {
+	    if (!quality_->IsStripBad(detId,theStrip)) NinBand++;
+	    else AllinBand--;
+	  }
+	}
         if (associator_ != 0) {
           std::vector<SimHitIdpr> simtrackid;
           associator_->associateSimpleRecHitCluster(clust, DetId(detId), simtrackid);
@@ -86,12 +103,13 @@ refineCluster(const edm::Handle< edm::DetSetVector<SiStripDigi> >& input,
           } else {
             clust->setMerged(false);
           }
+	  std::cout << "Cluster:strips_occStrips_merged_width "
+		    << AllinBand << " " << NinBand << " " << nmergedclust << " " clustend-cluststart << std::endl;
         } else {
-          if (ndigi > occupancyThreshold_*nchannreal && clust->amplitudes().size() >= widthThreshold_) clust->setMerged(true);
-          else clust->setMerged(false);
-        }
+	  if (NinBand > occupancyThreshold_*AllinBand && clust->amplitudes().size() >= widthThreshold_) clust->setMerged(true);
+	  else clust->setMerged(false);
+	}
       }
-      // std::cout << "Sensor:strips_occStrips_clust_merged " << nchannreal << " " << ndigi << " " << det->size() << " " << nmergedclust << std::endl;
     }
   }  // traverse sensors
 }
