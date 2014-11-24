@@ -77,7 +77,7 @@ refineCluster(const edm::Handle< edm::DetSetVector<SiStripDigi> >& input,
     edm::DetSetVector<SiStripDigi>::const_iterator digis = input->find(detId);
     if (digis != input->end()) {
       // int ndigi = digis->size();
-      int nmergedclust = 0;
+      // int nmergedclust = 0;
       for (edmNew::DetSet<SiStripCluster>::iterator clust = det->begin(); clust != det->end(); clust++) {
 	uint16_t cluststart = clust->firstStrip();
 	uint16_t clustend = cluststart + clust->amplitudes().size();
@@ -98,13 +98,13 @@ refineCluster(const edm::Handle< edm::DetSetVector<SiStripDigi> >& input,
           std::vector<SimHitIdpr> simtrackid;
           associator_->associateSimpleRecHitCluster(clust, DetId(detId), simtrackid);
           if (simtrackid.size() > 1) {
-            nmergedclust++;
+            // nmergedclust++;
             clust->setMerged(true);
           } else {
             clust->setMerged(false);
           }
 	  std::cout << "Cluster:strips_occStrips_merged_width "
-		    << AllinBand << " " << NinBand << " " << nmergedclust << " " clustend-cluststart << std::endl;
+		    << AllinBand << " " << NinBand << " " << clust->isMerged() << " " << clustend-cluststart << std::endl;
         } else {
 	  if (NinBand > occupancyThreshold_*AllinBand && clust->amplitudes().size() >= widthThreshold_) clust->setMerged(true);
 	  else clust->setMerged(false);
