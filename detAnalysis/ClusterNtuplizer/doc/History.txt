@@ -1,0 +1,18 @@
+28 Nov 2014  wtford
+ClusterNtuplizer:  Adapt simHit indexing to the >=CMSSW_6_2_7_patch1
+(CMSSW_7_2_0_pre4) version of strip DigiSimLink.
+
+12 Jul 2010  wtford -- V01-01-03
+ClusterNtuplizer:  Changes in printout.
+
+1 Jun 2010  wtford -- V01-01-02
+Update for CMSSW_4_2_X; Buildfile -> new Buildfile.xml.
+Add variables to the ntuple.
+
+19 May 2010  wtford -- V01-01-01
+Update for CMSSW_3_5_X
+ClusterNtuplizer:  Add a tree and histograms for pixel vertices.
+
+11 Mar 2010  wtford -- V01-01-00
+Initial version, tested in CMSSW_3_1_2
+
